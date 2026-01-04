@@ -58,7 +58,7 @@ export default function RootLayout({
             <CurrencyProviderWrapper>
               <div className="flex h-screen overflow-hidden">
                 <Sidebar />
-                <main className="flex-1 overflow-y-auto bg-background pb-20 md:pb-0">
+                <main className="flex-1 overflow-y-auto bg-background pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0">
                   <MobileHeader />
                   {children}
                 </main>

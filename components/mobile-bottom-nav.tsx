@@ -105,7 +105,7 @@ export function MobileBottomNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="flex h-16 items-center justify-around px-2">
           {/* Left navigation items */}
           {leftItems.map((item) => {

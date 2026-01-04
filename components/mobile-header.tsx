@@ -15,7 +15,7 @@ export function MobileHeader() {
   const { selectedUserId, setSelectedUserId, users } = useUser();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card px-4 py-3 md:hidden">
+    <header className="sticky top-0 z-40 border-b border-border bg-card px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))] md:hidden">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Budgie</h1>
         <div className="flex items-center gap-2">

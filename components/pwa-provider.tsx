@@ -64,7 +64,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {showIOSInstallPrompt && (
-        <div className="fixed bottom-0 left-0 right-0 bg-primary text-primary-foreground p-4 z-50 md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 bg-primary text-primary-foreground p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-50 md:hidden">
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
               <p className="text-sm font-medium">Install Budgie</p>
