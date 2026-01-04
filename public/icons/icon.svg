@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Black background filling entire viewBox -->
+  <rect width="512" height="512" fill="#000000"/>
+  
+  <!-- Background circle - slightly larger to fill edge -->
+  <circle cx="256" cy="256" r="256" fill="#000000"/>
+  
+  <!-- Letter B - centered -->
+  <text 
+    x="256" 
+    y="256" 
+    font-family="system-ui, -apple-system, sans-serif" 
+    font-size="320" 
+    font-weight="bold" 
+    fill="white" 
+    text-anchor="middle" 
+    dominant-baseline="central"
+    letter-spacing="-20"
+  >B</text>
+</svg>
+

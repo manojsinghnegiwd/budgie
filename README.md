@@ -2,6 +2,23 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# Database (Turso)
+DATABASE_URL=your_database_url
+TURSO_AUTH_TOKEN=your_turso_auth_token
+
+# PWA Push Notifications (VAPID keys)
+# Generate with: npx web-push generate-vapid-keys
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_public_key
+VAPID_PRIVATE_KEY=your_private_key
+```
+
+### Development Server
+
 First, run the development server:
 
 ```bash
@@ -16,7 +33,29 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+For PWA testing with HTTPS (required for service workers and push notifications), use:
+
+```bash
+npm run dev -- --experimental-https
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+## PWA Features
+
+This app is a Progressive Web App (PWA) with the following features:
+
+- **Installable**: Users can install Budgie to their home screen
+- **Offline Support**: Basic offline caching for app shell and pages
+- **Push Notifications**: Receive notifications for bills and budget alerts
+- **Service Worker**: Handles caching and push notification events
+
+### PWA Icons
+
+Place PWA icons in `public/icons/` directory. Required sizes:
+- 72x72, 96x96, 128x128, 144x144, 152x152, 192x192, 384x384, 512x512
+
+You can generate these using tools like [RealFaviconGenerator](https://realfavicongenerator.net/) or [PWA Builder](https://www.pwabuilder.com/imageGenerator).
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

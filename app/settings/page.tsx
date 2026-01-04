@@ -10,6 +10,7 @@ import { CategorySettings } from "@/components/category-settings";
 import { CurrencySettings } from "@/components/currency-settings";
 import { UserSettings } from "@/components/user-settings";
 import { UserManagement } from "@/components/user-management";
+import { NotificationSettings } from "@/components/notification-settings";
 import type { Budget, Category } from "@/lib/prisma";
 
 export default function SettingsPage() {
@@ -70,6 +71,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
         <div className="space-y-8">
           <UserManagement />
+          <NotificationSettings />
           {settings && (
             <CurrencySettings initialConversionRate={settings.usdConversionRate} />
           )}
@@ -94,17 +96,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8">
-      <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
-      <div className="space-y-8">
-        <UserManagement />
-        {selectedUser && (
-          <UserSettings initialName={selectedUser.name} userId={selectedUser.id} />
-        )}
-        <CurrencySettings initialConversionRate={settings.usdConversionRate} />
-        <BudgetSettings budget={budget} />
-        <CategorySettings categories={categories} />
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
+        <div className="space-y-8">
+          <UserManagement />
+          <NotificationSettings />
+          {selectedUser && (
+            <UserSettings initialName={selectedUser.name} userId={selectedUser.id} />
+          )}
+          <CurrencySettings initialConversionRate={settings.usdConversionRate} />
+          <BudgetSettings budget={budget} />
+          <CategorySettings categories={categories} />
+        </div>
       </div>
-    </div>
   );
 }
