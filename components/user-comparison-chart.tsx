@@ -60,7 +60,7 @@ export function UserComparisonChart({ data }: UserComparisonChartProps) {
               }}
             />
             <Tooltip
-              formatter={(value: number) => formatCurrencyAmount(value)}
+              formatter={(value: number | undefined) => value !== undefined ? formatCurrencyAmount(value) : ""}
               contentStyle={{
                 backgroundColor: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",
