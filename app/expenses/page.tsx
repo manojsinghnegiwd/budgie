@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, SlidersHorizontal, ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Expense, Category } from "@/lib/prisma";
 
 export default function ExpensesPage() {
@@ -23,6 +24,10 @@ export default function ExpensesPage() {
   const [includeProjected, setIncludeProjected] = useState(true);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  // Check if any filters are active
+  const hasActiveFilters = expenseType !== "all" || !includeProjected || startDate || endDate;
 
   useEffect(() => {
     if (!selectedUserId) {
@@ -56,35 +61,63 @@ export default function ExpensesPage() {
 
   if (!selectedUserId) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold">Expenses</h1>
-        <p className="text-muted-foreground mt-4">Please select a user from the sidebar.</p>
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold">Expenses</h1>
+        <p className="text-muted-foreground mt-4">Please select a user from the header.</p>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold">Expenses</h1>
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold">Expenses</h1>
         <p className="text-muted-foreground mt-4">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Expenses</h1>
-        <AddExpenseDialog categories={categories} />
+        <h1 className="text-2xl md:text-3xl font-bold">Expenses</h1>
+        <div className="hidden md:block">
+          <AddExpenseDialog categories={categories} />
+        </div>
       </div>
-      <div className="mb-6 space-y-4">
+      {/* Mobile Filter Toggle */}
+      <div className="mb-4 md:hidden">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          className="w-full justify-between"
+        >
+          <span className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {hasActiveFilters && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                !
+              </span>
+            )}
+          </span>
+          <ChevronUp className={cn("h-4 w-4 transition-transform", !filtersOpen && "rotate-180")} />
+        </Button>
+      </div>
+
+      {/* Filters Section - Collapsible on mobile, always visible on desktop */}
+      <div className={cn(
+        "mb-6 space-y-4 overflow-hidden transition-all duration-300",
+        // On mobile: show/hide based on filtersOpen
+        filtersOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 md:max-h-none md:opacity-100"
+      )}>
         <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as typeof expenseType)}>
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="regular">Regular</TabsTrigger>
-            <TabsTrigger value="recurring">Recurring</TabsTrigger>
-            <TabsTrigger value="reminder">Reminders</TabsTrigger>
+          <TabsList className="flex-wrap h-auto gap-1">
+            <TabsTrigger value="all" className="text-xs md:text-sm">All</TabsTrigger>
+            <TabsTrigger value="regular" className="text-xs md:text-sm">Regular</TabsTrigger>
+            <TabsTrigger value="recurring" className="text-xs md:text-sm">Recurring</TabsTrigger>
+            <TabsTrigger value="reminder" className="text-xs md:text-sm">Reminders</TabsTrigger>
           </TabsList>
         </Tabs>
         <div className="flex flex-col gap-4">
@@ -94,27 +127,27 @@ export default function ExpensesPage() {
               checked={includeProjected}
               onCheckedChange={setIncludeProjected}
             />
-            <Label htmlFor="include-projected">Include projected expenses</Label>
+            <Label htmlFor="include-projected" className="text-sm">Include projected expenses</Label>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
             <div className="flex items-center gap-2">
-              <Label htmlFor="start-date">Start Date</Label>
+              <Label htmlFor="start-date" className="text-sm whitespace-nowrap">Start Date</Label>
               <Input
                 id="start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-auto"
+                className="w-full md:w-auto"
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label htmlFor="end-date">End Date</Label>
+              <Label htmlFor="end-date" className="text-sm whitespace-nowrap">End Date</Label>
               <Input
                 id="end-date"
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-auto"
+                className="w-full md:w-auto"
               />
             </div>
             {(startDate || endDate) && (
@@ -125,9 +158,10 @@ export default function ExpensesPage() {
                   setStartDate("");
                   setEndDate("");
                 }}
+                className="w-full md:w-auto"
               >
                 <X className="h-4 w-4 mr-1" />
-                Clear Filters
+                Clear Dates
               </Button>
             )}
           </div>
