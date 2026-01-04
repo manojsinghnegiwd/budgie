@@ -73,17 +73,17 @@ export default function Dashboard() {
 
   if (!selectedUserId) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-4">Please select a user from the sidebar.</p>
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground mt-4">Please select a user from the header.</p>
       </div>
     );
   }
 
   if (loading || !budget || !stats) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground mt-4">Loading...</p>
       </div>
     );
@@ -100,16 +100,16 @@ export default function Dashboard() {
   const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="p-4 md:p-8 space-y-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+          <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
           <div className="flex items-center gap-2">
             <Select
               value={selectedMonth.toString()}
               onValueChange={(value) => setSelectedMonth(parseInt(value))}
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[120px] md:w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -124,7 +124,7 @@ export default function Dashboard() {
               value={selectedYear.toString()}
               onValueChange={(value) => setSelectedYear(parseInt(value))}
             >
-              <SelectTrigger className="w-[100px]">
+              <SelectTrigger className="w-[90px] md:w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -137,7 +137,9 @@ export default function Dashboard() {
             </Select>
           </div>
         </div>
-        <QuickAddExpense categories={categories} />
+        <div className="hidden md:block">
+          <QuickAddExpense categories={categories} />
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

@@ -66,8 +66,8 @@ export default function SettingsPage() {
 
   if (!selectedUserId) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
         <div className="space-y-8">
           <UserManagement />
           {settings && (
@@ -83,8 +83,8 @@ export default function SettingsPage() {
 
   if (loading || !budget || !settings) {
     return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold mb-6">Settings</h1>
+      <div className="p-4 md:p-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
         <div className="space-y-8">
           <UserManagement />
           <p className="text-muted-foreground">Loading user settings...</p>
@@ -94,8 +94,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
+    <div className="p-4 md:p-8">
+      <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
       <div className="space-y-8">
         <UserManagement />
         {selectedUser && (
