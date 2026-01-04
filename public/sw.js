@@ -13,7 +13,7 @@ self.addEventListener("install", (event) => {
       return cache.addAll(urlsToCache);
     })
   );
-  self.skipWaiting();
+  // Don't skip waiting - let user control when to update
 });
 
 // Activate event - clean up old caches
@@ -109,5 +109,12 @@ self.addEventListener("notificationclick", (event) => {
         }
       })
   );
+});
+
+// Message event - handle messages from the client
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
