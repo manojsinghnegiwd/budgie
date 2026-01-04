@@ -68,3 +68,17 @@ export type User = {
   updatedAt: Date;
 };
 
+export type Investment = {
+  id: string;
+  userId: string;
+  name: string;
+  type: string;
+  investedAmount: number;
+  currentValue: number;
+  units: number | null;
+  purchaseDate: Date;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
