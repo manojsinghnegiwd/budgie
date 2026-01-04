@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Receipt, Settings, Users, Plus } from "lucide-react";
+import { LayoutDashboard, Receipt, Settings, Plus, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -41,7 +41,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Expenses", href: "/expenses", icon: Receipt },
   // Plus button will be in the middle
-  { name: "Global", href: "/global-dashboard", icon: Users },
+  { name: "Invest", href: "/investments", icon: TrendingUp },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

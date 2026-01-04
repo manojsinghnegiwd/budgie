@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Receipt, Settings, Users } from "lucide-react";
+import { LayoutDashboard, Receipt, Settings, Users, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/components/currency-provider";
 import { useUser } from "@/components/user-provider";
@@ -17,6 +17,7 @@ import {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Expenses", href: "/expenses", icon: Receipt },
+  { name: "Investments", href: "/investments", icon: TrendingUp },
   { name: "Global Dashboard", href: "/global-dashboard", icon: Users },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

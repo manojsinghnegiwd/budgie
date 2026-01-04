@@ -6,6 +6,7 @@ import { getBudgetForMonth } from "@/app/actions/budget";
 import { getExpenseStats, getExpensesByMonth } from "@/app/actions/expenses";
 import { getCategories } from "@/app/actions/categories";
 import { getMonthForecast } from "@/app/actions/forecast";
+import { getInvestmentStats } from "@/app/actions/investments";
 import { DashboardStats } from "@/components/dashboard-stats";
 import { BudgetProgress } from "@/components/budget-progress";
 import { CategoryChart } from "@/components/category-chart";
@@ -14,6 +15,7 @@ import { MonthComparison } from "@/components/month-comparison";
 import { FutureForecast } from "@/components/future-forecast";
 import { QuickAddExpense } from "@/components/quick-add-expense";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { InvestmentSummaryCard } from "@/components/investment-stats";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Budget, Expense, Category } from "@/lib/prisma";
 
@@ -32,6 +34,14 @@ export default function Dashboard() {
   const [previousExpenses, setPreviousExpenses] = useState<(Expense & { category: Category })[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [monthForecast, setMonthForecast] = useState<{ totalAmount: number; billCount: number; reminderCount: number } | null>(null);
+  const [investmentStats, setInvestmentStats] = useState<{
+    totalInvested: number;
+    totalCurrentValue: number;
+    totalGainLoss: number;
+    gainLossPercentage: number;
+    count: number;
+    byType: Array<{ type: string; invested: number; currentValue: number; count: number }>;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async (showLoading = true) => {
@@ -45,7 +55,7 @@ export default function Dashboard() {
     const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
 
     try {
-      const [budgetData, statsData, currentExpensesData, previousExpensesData, categoriesData, monthForecast] =
+      const [budgetData, statsData, currentExpensesData, previousExpensesData, categoriesData, monthForecast, investmentStatsData] =
         await Promise.all([
           getBudgetForMonth(selectedUserId, selectedMonth, selectedYear),
           getExpenseStats(selectedUserId, selectedMonth, selectedYear, false), // Exclude projected - forecast handles them separately
@@ -53,6 +63,7 @@ export default function Dashboard() {
           getExpensesByMonth(selectedUserId, previousMonth, previousYear, false), // Don't include projected for past
           getCategories(),
           getMonthForecast(selectedUserId, selectedMonth, selectedYear),
+          getInvestmentStats(selectedUserId),
         ]);
 
       setBudget(budgetData);
@@ -61,6 +72,7 @@ export default function Dashboard() {
       setPreviousExpenses(previousExpensesData);
       setCategories(categoriesData);
       setMonthForecast(monthForecast);
+      setInvestmentStats(investmentStatsData);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -174,6 +186,12 @@ export default function Dashboard() {
             currentYear={selectedYear}
           />
         </div>
+
+        {investmentStats && (
+          <div className="grid gap-6 md:grid-cols-2">
+            <InvestmentSummaryCard stats={investmentStats} />
+          </div>
+        )}
 
         <FutureForecast userId={selectedUserId} />
       </div>

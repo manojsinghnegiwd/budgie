@@ -21,6 +21,7 @@ model User {
   updatedAt          DateTime          @updatedAt
   budgets            Budget[]
   expenses           Expense[]
+  investments        Investment[]
   pushSubscriptions  PushSubscription[]
 
   @@index([name])
@@ -97,4 +98,23 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model Investment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          String   // "stocks", "mutual_funds", "crypto", "fixed_deposit", "gold", "real_estate", "other"
+  investedAmount Float   // Total amount invested
+  currentValue  Float    // Current value of the investment
+  units         Float?   // Number of units/shares (optional)
+  purchaseDate  DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+  @@index([purchaseDate])
 }
