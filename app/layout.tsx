@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
+import { MobileHeader } from "@/components/mobile-header";
 import { CurrencyProviderWrapper } from "@/components/currency-provider-wrapper";
 import { UserProviderWrapper } from "@/components/user-provider-wrapper";
 
@@ -34,9 +36,11 @@ export default function RootLayout({
           <CurrencyProviderWrapper>
             <div className="flex h-screen overflow-hidden">
               <Sidebar />
-              <main className="flex-1 overflow-y-auto bg-background">
+              <main className="flex-1 overflow-y-auto bg-background pb-20 md:pb-0">
+                <MobileHeader />
                 {children}
               </main>
+              <MobileBottomNav />
             </div>
           </CurrencyProviderWrapper>
         </UserProviderWrapper>
