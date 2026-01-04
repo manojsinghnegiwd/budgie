@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Exclude libsql packages from webpack bundling (they need native Node.js)
+  serverExternalPackages: ["@libsql/client", "@prisma/adapter-libsql"],
 };
 
 export default nextConfig;

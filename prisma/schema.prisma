@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  // Use a local file for schema validation, actual connection uses Turso via adapter
+  url      = "file:./dev.db"
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String
+  avatar             String?
+  defaultBudgetLimit Float     @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  budgets            Budget[]
+  expenses           Expense[]
+
+  @@index([name])
+}
+
+model Budget {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthlyLimit Float
+  month        Int
+  year         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, month, year])
+  @@index([userId, year, month])
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  color     String
+  icon      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
+}
+
+model Expense {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description        String
+  amount             Float
+  date               DateTime
+  categoryId         String
+  category           Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  type               String    @default("regular") // "regular", "recurring", "reminder"
+  isProjected        Boolean   @default(false)
+  isPaid             Boolean   @default(true) // Whether the expense has been paid
+  recurringFrequency String? // "daily", "weekly", "monthly", "yearly"
+  dayOfMonth         Int?
+  nextDueDate        DateTime?
+  endDate            DateTime? // End date for recurring bill series
+  isActive           Boolean? // For recurring bills
+  isCompleted        Boolean? // For reminders
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId, date])
+  @@index([categoryId])
+  @@index([userId])
+  @@index([type])
+  @@index([isProjected])
+  @@index([nextDueDate])
+}
+
+model Settings {
+  id                String   @id @default(cuid())
+  usdConversionRate Float    @default(83.0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
