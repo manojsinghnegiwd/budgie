@@ -62,13 +62,14 @@ export function UserComparisonChart({ data }: UserComparisonChartProps) {
             <Tooltip
               formatter={(value: number | undefined) => value !== undefined ? formatCurrencyAmount(value) : ""}
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                color: "hsl(var(--card-foreground))",
+                backgroundColor: "#000000",
+                border: "1px solid #333333",
+                color: "#ffffff",
                 borderRadius: "0.5rem",
                 padding: "0.5rem",
-                opacity: 1,
               }}
+              labelStyle={{ color: "#ffffff" }}
+              itemStyle={{ color: "#ffffff" }}
             />
             <Legend />
             <Bar dataKey="spent" fill="#ef4444" name="Spent" />

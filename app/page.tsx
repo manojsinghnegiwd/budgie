@@ -11,10 +11,11 @@ import { BudgetProgress } from "@/components/budget-progress";
 import { CategoryChart } from "@/components/category-chart";
 import { SpendingTrends } from "@/components/spending-trends";
 import { MonthComparison } from "@/components/month-comparison";
-import { FutureForecast } from "@/components/future-forecast";
+import { ExpensesTable } from "@/components/expenses-table";
 import { QuickAddExpense } from "@/components/quick-add-expense";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Budget, Expense, Category } from "@/lib/prisma";
 
 export default function Dashboard() {
@@ -175,7 +176,15 @@ export default function Dashboard() {
           />
         </div>
 
-        <FutureForecast userId={selectedUserId} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Expenses</CardTitle>
+            <CardDescription>All expenses for {monthNames[selectedMonth - 1]} {selectedYear}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExpensesTable expenses={currentExpenses} categories={categories} />
+          </CardContent>
+        </Card>
       </div>
     </PullToRefresh>
   );

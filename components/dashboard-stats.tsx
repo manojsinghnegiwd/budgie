@@ -17,7 +17,7 @@ interface DashboardStatsProps {
 export function DashboardStats({ stats, budget, forecastAmount = 0 }: DashboardStatsProps) {
   const { formatCurrencyAmount } = useCurrency();
   const totalUsed = stats.total + forecastAmount;
-  const adjustedRemaining = Math.max(0, budget.monthlyLimit - totalUsed);
+  const adjustedRemaining = budget.monthlyLimit - totalUsed;
   const remaining = Math.max(0, budget.monthlyLimit - stats.total);
   const percentage = budget.monthlyLimit > 0 
     ? (stats.total / budget.monthlyLimit) * 100 
@@ -59,10 +59,10 @@ export function DashboardStats({ stats, budget, forecastAmount = 0 }: DashboardS
         </CardHeader>
         <CardContent>
           <div className="text-base font-bold">
-            {formatCurrencyAmount(adjustedRemaining)} / {formatCurrencyAmount(budget.monthlyLimit)}
+            {formatCurrencyAmount(budget.monthlyLimit)}
           </div>
           <p className="text-xs text-muted-foreground">
-            Adjusted remaining / Total limit
+            Monthly budget
           </p>
         </CardContent>
       </Card>
@@ -71,9 +71,15 @@ export function DashboardStats({ stats, budget, forecastAmount = 0 }: DashboardS
           <CardTitle className="text-sm font-medium">Remaining</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrencyAmount(remaining)}</div>
+          <div className={cn(
+            "text-2xl font-bold",
+            isOverLimit && "text-red-500",
+            isNearLimit && "text-yellow-500"
+          )}>
+            {formatCurrencyAmount(adjustedRemaining)}
+          </div>
           <p className="text-xs text-muted-foreground">
-            {percentage.toFixed(1)}% of budget used
+            {totalPercentage.toFixed(1)}% of budget used
           </p>
         </CardContent>
       </Card>
@@ -83,7 +89,7 @@ export function DashboardStats({ stats, budget, forecastAmount = 0 }: DashboardS
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            {formatCurrencyAmount(stats.total / new Date().getDate())}
+            {formatCurrencyAmount(totalUsed / new Date().getDate())}
           </div>
           <p className="text-xs text-muted-foreground">
             Spending per day

@@ -140,3 +140,106 @@ export async function sendNotification(
   }
 }
 
+/**
+ * Get upcoming expenses due within the specified number of days
+ */
+export async function getUpcomingExpenses(daysAhead: number = 1) {
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() + daysAhead);
+  targetDate.setHours(0, 0, 0, 0);
+  const targetDateEnd = new Date(targetDate);
+  targetDateEnd.setHours(23, 59, 59, 999);
+
+  const upcomingExpenses = await prisma.expense.findMany({
+    where: {
+      type: { in: ["recurring", "reminder"] },
+      isProjected: true,
+      date: {
+        gte: targetDate,
+        lte: targetDateEnd,
+      },
+    },
+    include: {
+      user: true,
+      category: true,
+    },
+  });
+
+  return upcomingExpenses;
+}
+
+/**
+ * Send daily reminder to all subscribed users to log their expenses
+ */
+export async function sendDailyLogReminder() {
+  return await sendNotification(
+    "Time to log expenses!",
+    "Don't forget to record today's spending in Budgie",
+    {
+      url: "/expenses",
+      tag: "daily-log-reminder",
+    }
+  );
+}
+
+/**
+ * Send reminders for upcoming recurring and reminder expenses
+ */
+export async function sendUpcomingExpenseReminders() {
+  const upcomingExpenses = await getUpcomingExpenses(1); // 1 day ahead
+
+  if (upcomingExpenses.length === 0) {
+    return { success: true, sent: 0, failed: 0 };
+  }
+
+  // Group expenses by user
+  const expensesByUser = new Map<string, typeof upcomingExpenses>();
+  for (const expense of upcomingExpenses) {
+    if (!expensesByUser.has(expense.userId)) {
+      expensesByUser.set(expense.userId, []);
+    }
+    expensesByUser.get(expense.userId)!.push(expense);
+  }
+
+  // Send notifications to each user
+  const results = await Promise.allSettled(
+    Array.from(expensesByUser.entries()).map(async ([userId, expenses]) => {
+      // If user has multiple expenses, send a summary notification
+      if (expenses.length > 1) {
+        const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+        return await sendNotification(
+          "Bills Due Tomorrow",
+          `You have ${expenses.length} bills totaling Rs. ${totalAmount.toFixed(2)} due tomorrow`,
+          {
+            userId,
+            url: "/expenses",
+            tag: "upcoming-expenses",
+          }
+        );
+      } else {
+        // Single expense - send specific notification
+        const expense = expenses[0];
+        return await sendNotification(
+          "Bill Due Tomorrow",
+          `${expense.description} - Rs. ${expense.amount.toFixed(2)} due tomorrow`,
+          {
+            userId,
+            url: "/expenses",
+            tag: "upcoming-expense",
+          }
+        );
+      }
+    })
+  );
+
+  const successful = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
+
+  return {
+    success: true,
+    sent: successful,
+    failed,
+    totalExpenses: upcomingExpenses.length,
+  };
+}
+
