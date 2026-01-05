@@ -49,10 +49,7 @@ const recurringExpenseSchema = expenseSchema.extend({
   endDate: z.date(),
 });
 
-const reminderExpenseSchema = expenseSchema.extend({
-  estimatedAmount: z.number().positive("Amount must be positive"),
-  dueDate: z.date(),
-});
+const reminderExpenseSchema = expenseSchema;
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 type RecurringExpenseFormValues = z.infer<typeof recurringExpenseSchema>;
@@ -98,8 +95,6 @@ export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
       amount: 0,
       date: new Date(),
       categoryId: "",
-      estimatedAmount: 0,
-      dueDate: new Date(),
     },
   });
 
@@ -148,8 +143,8 @@ export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
     try {
       await createReminderExpense(selectedUserId, {
         description: values.description,
-        estimatedAmount: values.estimatedAmount,
-        dueDate: values.dueDate,
+        amount: values.amount,
+        date: values.date,
         categoryId: values.categoryId,
       });
       reminderForm.reset();
@@ -474,10 +469,10 @@ export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
                 />
                 <FormField
                   control={reminderForm.control}
-                  name="estimatedAmount"
+                  name="amount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Estimated Amount</FormLabel>
+                      <FormLabel>Amount</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -493,10 +488,10 @@ export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
                 />
                 <FormField
                   control={reminderForm.control}
-                  name="dueDate"
+                  name="date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Due Date</FormLabel>
+                      <FormLabel>Date</FormLabel>
                       <FormControl>
                         <Input
                           type="date"

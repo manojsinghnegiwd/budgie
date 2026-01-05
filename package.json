@@ -10,6 +10,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:push-turso": "prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script 2>/dev/null | tail -n +2 > turso-schema.sql && tsx scripts/apply-turso-schema.ts",
     "db:migrate-to-turso": "tsx scripts/migrate-to-turso.ts",
+    "db:verify-reminders": "tsx scripts/verify-reminder-data.ts",
     "icons:generate": "node scripts/generate-icons.js"
   },
   "prisma": {

@@ -333,8 +333,8 @@ export async function createReminderExpense(
   userId: string,
   data: {
     description: string;
-    estimatedAmount: number;
-    dueDate: Date;
+    amount: number;
+    date: Date;
     categoryId: string;
   }
 ) {
@@ -342,8 +342,8 @@ export async function createReminderExpense(
     data: {
       userId,
       description: data.description,
-      amount: data.estimatedAmount,
-      date: data.dueDate,
+      amount: data.amount,
+      date: data.date,
       categoryId: data.categoryId,
       type: "reminder",
       isProjected: true,

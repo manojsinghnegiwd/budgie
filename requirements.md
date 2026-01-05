@@ -4,3 +4,6 @@
 4. Pattern recognition and spending prediction
 5. Take a picture of a receipt and add it to the app
 6. Split management between multiple users
+7. Limits per category
+8. Budget tracking per category.
+7. A default global user for the app.
