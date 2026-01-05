@@ -7,3 +7,4 @@
 7. Limits per category
 8. Budget tracking per category.
 7. A default global user for the app.
+8. If I have a over limit purchase coming up next month, I should be able to see a save money card.
