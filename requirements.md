@@ -3,3 +3,4 @@
 3. AI chatbot for the app
 4. Pattern recognition and spending prediction
 5. Take a picture of a receipt and add it to the app
+6. Split management between multiple users
