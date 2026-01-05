@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AddCategoryDialog } from "@/components/add-category-dialog";
 import { EditCategoryDialog } from "@/components/edit-category-dialog";
 import { deleteCategory } from "@/app/actions/categories";
+import { useUser } from "@/components/user-provider";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import type { Category } from "@/lib/prisma";
 
@@ -15,6 +16,7 @@ interface CategorySettingsProps {
 }
 
 export function CategorySettings({ categories: initialCategories }: CategorySettingsProps) {
+  const { selectedUserId } = useUser();
   const [categories, setCategories] = useState(initialCategories);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -79,6 +81,11 @@ export function CategorySettings({ categories: initialCategories }: CategorySett
                   >
                     {category.name}
                   </Badge>
+                  {category.isShared && (
+                    <Badge variant="secondary" className="text-xs">
+                      Shared
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -106,6 +113,7 @@ export function CategorySettings({ categories: initialCategories }: CategorySett
           open={isAdding}
           onOpenChange={setIsAdding}
           onCategoryAdded={handleCategoryAdded}
+          selectedUserId={selectedUserId}
         />
       )}
       {editingCategory && (
@@ -114,6 +122,7 @@ export function CategorySettings({ categories: initialCategories }: CategorySett
           open={!!editingCategory}
           onOpenChange={(open) => !open && setEditingCategory(null)}
           onCategoryUpdated={handleCategoryUpdated}
+          selectedUserId={selectedUserId}
         />
       )}
     </Card>

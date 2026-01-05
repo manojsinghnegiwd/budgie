@@ -16,8 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { updateBudgetLimit } from "@/app/actions/budget";
-import { useUser } from "@/components/user-provider";
-import type { Budget } from "@/lib/prisma";
+import type { GlobalBudget } from "@/lib/prisma";
 
 const budgetSchema = z.object({
   monthlyLimit: z.number().positive("Monthly limit must be positive"),
@@ -26,12 +25,11 @@ const budgetSchema = z.object({
 type BudgetFormValues = z.infer<typeof budgetSchema>;
 
 interface BudgetSettingsProps {
-  budget: Budget;
+  budget: GlobalBudget | { monthlyLimit: number; month: number; year: number };
 }
 
 export function BudgetSettings({ budget }: BudgetSettingsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { selectedUserId } = useUser();
 
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetSchema),
@@ -41,11 +39,9 @@ export function BudgetSettings({ budget }: BudgetSettingsProps) {
   });
 
   const onSubmit = async (values: BudgetFormValues) => {
-    if (!selectedUserId) return;
-
     setIsSubmitting(true);
     try {
-      await updateBudgetLimit(selectedUserId, values.monthlyLimit);
+      await updateBudgetLimit(values.monthlyLimit);
     } catch (error) {
       console.error("Error updating budget:", error);
     } finally {
@@ -58,7 +54,7 @@ export function BudgetSettings({ budget }: BudgetSettingsProps) {
       <CardHeader>
         <CardTitle>Monthly Budget</CardTitle>
         <CardDescription>
-          Set your monthly spending limit for the current month.
+          Set the global monthly spending limit for the current month. This budget is shared across all users.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -85,7 +81,7 @@ export function BudgetSettings({ budget }: BudgetSettingsProps) {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isSubmitting || !selectedUserId}>
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : "Save Budget"}
             </Button>
           </form>

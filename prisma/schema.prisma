@@ -13,15 +13,17 @@ datasource db {
 }
 
 model User {
-  id                 String            @id @default(cuid())
+  id                 String                      @id @default(cuid())
   name               String
   avatar             String?
-  defaultBudgetLimit Float             @default(0)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  defaultBudgetLimit Float                       @default(0)
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
   budgets            Budget[]
   expenses           Expense[]
   pushSubscriptions  PushSubscription[]
+  categoryBudgets    UserCategoryBudget[]
+  categoryDefaultBudgets UserCategoryDefaultBudget[]
 
   @@index([name])
 }
@@ -41,13 +43,17 @@ model Budget {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String    @unique
-  color     String
-  icon      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expenses  Expense[]
+  id           String                      @id @default(cuid())
+  name         String                      @unique
+  color        String
+  icon         String?
+  budgetLimit  Float?
+  isShared     Boolean                     @default(false)
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  expenses     Expense[]
+  userBudgets  UserCategoryBudget[]
+  userDefaultBudgets UserCategoryDefaultBudget[]
 }
 
 model Expense {
@@ -80,10 +86,11 @@ model Expense {
 }
 
 model Settings {
-  id                String   @id @default(cuid())
-  usdConversionRate Float    @default(83.0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  usdConversionRate       Float    @default(83.0)
+  defaultGlobalBudgetLimit Float   @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 }
 
 model PushSubscription {
@@ -97,4 +104,49 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model UserCategoryDefaultBudget {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  limit      Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, categoryId])
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model UserCategoryBudget {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  limit      Float
+  month      Int
+  year       Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, categoryId, month, year])
+  @@index([userId])
+  @@index([categoryId])
+  @@index([userId, categoryId, year, month])
+}
+
+model GlobalBudget {
+  id           String   @id @default(cuid())
+  monthlyLimit Float
+  month        Int
+  year         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([month, year])
+  @@index([year, month])
 }

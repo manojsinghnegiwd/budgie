@@ -25,6 +25,8 @@ CREATE TABLE "Category" (
     "name" TEXT NOT NULL,
     "color" TEXT NOT NULL,
     "icon" TEXT,
+    "budgetLimit" REAL,
+    "isShared" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -56,6 +58,7 @@ CREATE TABLE "Expense" (
 CREATE TABLE "Settings" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "usdConversionRate" REAL NOT NULL DEFAULT 83.0,
+    "defaultGlobalBudgetLimit" REAL NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -70,6 +73,42 @@ CREATE TABLE "PushSubscription" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "PushSubscription_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "UserCategoryDefaultBudget" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "categoryId" TEXT NOT NULL,
+    "limit" REAL NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "UserCategoryDefaultBudget_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "UserCategoryDefaultBudget_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "UserCategoryBudget" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "categoryId" TEXT NOT NULL,
+    "limit" REAL NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "UserCategoryBudget_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "UserCategoryBudget_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "GlobalBudget" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "monthlyLimit" REAL NOT NULL,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
 -- CreateIndex
@@ -107,4 +146,31 @@ CREATE UNIQUE INDEX "PushSubscription_endpoint_key" ON "PushSubscription"("endpo
 
 -- CreateIndex
 CREATE INDEX "PushSubscription_userId_idx" ON "PushSubscription"("userId");
+
+-- CreateIndex
+CREATE INDEX "UserCategoryDefaultBudget_userId_idx" ON "UserCategoryDefaultBudget"("userId");
+
+-- CreateIndex
+CREATE INDEX "UserCategoryDefaultBudget_categoryId_idx" ON "UserCategoryDefaultBudget"("categoryId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserCategoryDefaultBudget_userId_categoryId_key" ON "UserCategoryDefaultBudget"("userId", "categoryId");
+
+-- CreateIndex
+CREATE INDEX "UserCategoryBudget_userId_idx" ON "UserCategoryBudget"("userId");
+
+-- CreateIndex
+CREATE INDEX "UserCategoryBudget_categoryId_idx" ON "UserCategoryBudget"("categoryId");
+
+-- CreateIndex
+CREATE INDEX "UserCategoryBudget_userId_categoryId_year_month_idx" ON "UserCategoryBudget"("userId", "categoryId", "year", "month");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "UserCategoryBudget_userId_categoryId_month_year_key" ON "UserCategoryBudget"("userId", "categoryId", "month", "year");
+
+-- CreateIndex
+CREATE INDEX "GlobalBudget_year_month_idx" ON "GlobalBudget"("year", "month");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GlobalBudget_month_year_key" ON "GlobalBudget"("month", "year");
 

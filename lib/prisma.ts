@@ -20,6 +20,8 @@ export type Category = {
   name: string;
   color: string;
   icon: string | null;
+  budgetLimit: number | null;
+  isShared: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -52,9 +54,19 @@ export type Budget = {
   updatedAt: Date;
 };
 
+export type GlobalBudget = {
+  id: string;
+  monthlyLimit: number;
+  month: number;
+  year: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type Settings = {
   id: string;
   usdConversionRate: number;
+  defaultGlobalBudgetLimit: number;
   createdAt: Date;
   updatedAt: Date;
 };

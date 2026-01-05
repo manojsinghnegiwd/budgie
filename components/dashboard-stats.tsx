@@ -3,14 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrency } from "@/components/currency-provider";
 import { cn } from "@/lib/utils";
-import type { Budget } from "@/lib/prisma";
+import type { GlobalBudget } from "@/lib/prisma";
 
 interface DashboardStatsProps {
   stats: {
     total: number;
     count: number;
   };
-  budget: Budget;
+  budget: GlobalBudget | { monthlyLimit: number; month: number; year: number };
   forecastAmount?: number;
 }
 

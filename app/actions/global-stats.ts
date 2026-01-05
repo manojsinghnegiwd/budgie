@@ -17,6 +17,13 @@ export async function getGlobalStats(month?: number, year?: number) {
     },
   });
 
+  // Get shared category IDs
+  const sharedCategories = await prisma.category.findMany({
+    where: { isShared: true },
+    select: { id: true },
+  });
+  const sharedCategoryIds = sharedCategories.map((c) => c.id);
+
   // Get expenses for all users in the month
   const expenses = await prisma.expense.findMany({
     where: {
@@ -31,25 +38,32 @@ export async function getGlobalStats(month?: number, year?: number) {
     },
   });
 
-  // Get budgets for all users in the month
-  const budgets = await prisma.budget.findMany({
+  // Get global budget for the month
+  const globalBudget = await prisma.globalBudget.findUnique({
     where: {
-      month: targetMonth,
-      year: targetYear,
-    },
-    include: {
-      user: true,
+      month_year: {
+        month: targetMonth,
+        year: targetYear,
+      },
     },
   });
 
+  // Get default global budget from settings if no monthly record exists
+  const settings = await prisma.settings.findFirst();
+  const overallBudgetLimit = globalBudget?.monthlyLimit ?? settings?.defaultGlobalBudgetLimit ?? 0;
+
   // Calculate stats per user
   const userStats = users.map((user) => {
-    const userExpenses = expenses.filter((e) => e.userId === user.id);
-    const userBudget = budgets.find((b) => b.userId === user.id);
+    // Include user's own expenses + expenses in shared categories
+    const userExpenses = expenses.filter(
+      (e) =>
+        e.userId === user.id ||
+        (sharedCategoryIds.includes(e.categoryId) && e.category.isShared)
+    );
 
     const total = userExpenses.reduce((sum, e) => sum + e.amount, 0);
-    // Use stored budget if exists, otherwise use user's default budget
-    const budgetLimit = userBudget?.monthlyLimit ?? user.defaultBudgetLimit;
+    // Use global budget for all users
+    const budgetLimit = overallBudgetLimit;
 
     // Calculate by category
     const byCategory: Record<
@@ -82,13 +96,8 @@ export async function getGlobalStats(month?: number, year?: number) {
 
   // Calculate overall stats
   const overallTotal = expenses.reduce((sum, e) => sum + e.amount, 0);
-  // Calculate overall budget: sum of stored budgets + default budgets for users without records
-  const usersWithStoredBudgets = new Set(budgets.map((b) => b.userId));
-  const overallBudget =
-    budgets.reduce((sum, b) => sum + b.monthlyLimit, 0) +
-    users
-      .filter((u) => !usersWithStoredBudgets.has(u.id))
-      .reduce((sum, u) => sum + u.defaultBudgetLimit, 0);
+  // Use global budget for overall stats
+  const overallBudget = overallBudgetLimit;
   const overallCount = expenses.length;
 
   // Overall by category

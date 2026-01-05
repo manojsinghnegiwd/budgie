@@ -261,9 +261,10 @@ export interface MonthForecastSummary {
 }
 
 export async function getMonthForecast(
-  userId: string,
+  userId: string | null,
   month: number,
-  year: number
+  year: number,
+  categoryId?: string
 ): Promise<MonthForecastSummary> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -277,31 +278,46 @@ export async function getMonthForecast(
   
   const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
+  const whereUnpaid: any = {
+    isProjected: false,
+    isPaid: false,
+    date: {
+      gte: startDate,
+      lte: endDate,
+    },
+  };
+
+  const whereProjected: any = {
+    isProjected: true,
+    isPaid: false,
+    date: {
+      gte: forecastStartDate,
+      lte: endDate,
+    },
+  };
+
+  // If userId is null, fetch for all users (global view)
+  // Otherwise, fetch for specific user
+  if (userId !== null) {
+    whereUnpaid.userId = userId;
+    whereProjected.userId = userId;
+  }
+  // If userId is null, no userId filter - get all expenses
+
+  if (categoryId) {
+    whereUnpaid.categoryId = categoryId;
+    whereProjected.categoryId = categoryId;
+  }
+
   // 1. Fetch unpaid expenses that are due (not projected, not paid) in the month
   const unpaidDueExpenses = await prisma.expense.findMany({
-    where: {
-      userId,
-      isProjected: false,
-      isPaid: false,
-      date: {
-        gte: startDate,
-        lte: endDate,
-      },
-    },
+    where: whereUnpaid,
   });
 
   // 2. Fetch projected expenses in the month (actual DB records)
   // These are future recurring/reminder expenses that exist in the database
   const projectedExpenses = await prisma.expense.findMany({
-    where: {
-      userId,
-      isProjected: true,
-      isPaid: false, // Only include unpaid projected expenses
-      date: {
-        gte: forecastStartDate,
-        lte: endDate,
-      },
-    },
+    where: whereProjected,
   });
 
   // Calculate totals

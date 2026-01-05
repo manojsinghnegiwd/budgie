@@ -17,17 +17,17 @@ import { deleteExpense, markExpenseAsPaid } from "@/app/actions/expenses";
 import { format } from "date-fns";
 import { Pencil, Trash2 } from "lucide-react";
 import { useCurrency } from "@/components/currency-provider";
-import type { Expense, Category } from "@/lib/prisma";
+import type { Expense, Category, User } from "@/lib/prisma";
 
 interface ExpensesTableProps {
-  expenses: (Expense & { category: Category })[];
+  expenses: (Expense & { category: Category; user: User })[];
   categories: Category[];
 }
 
 export function ExpensesTable({ expenses, categories }: ExpensesTableProps) {
   const { formatCurrencyAmount } = useCurrency();
   const [editingExpense, setEditingExpense] = useState<
-    (Expense & { category: Category }) | null
+    (Expense & { category: Category; user: User }) | null
   >(null);
   const [isPending, startTransition] = useTransition();
   
@@ -66,6 +66,7 @@ export function ExpensesTable({ expenses, categories }: ExpensesTableProps) {
               <TableHead>Date</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Paid By</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-center">Paid</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -74,7 +75,7 @@ export function ExpensesTable({ expenses, categories }: ExpensesTableProps) {
           <TableBody>
             {optimisticExpenses.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   No expenses yet. Add your first expense to get started!
                 </TableCell>
               </TableRow>
@@ -116,9 +117,25 @@ export function ExpensesTable({ expenses, categories }: ExpensesTableProps) {
                       {expense.category.name}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrencyAmount(expense.amount)}
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {expense.user.avatar ? (
+                        <img
+                          src={expense.user.avatar}
+                          alt={expense.user.name}
+                          className="h-6 w-6 rounded-full"
+                        />
+                      ) : (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                          {expense.user.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-sm text-muted-foreground">{expense.user.name}</span>
+                    </div>
                   </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrencyAmount(expense.amount)}
+                    </TableCell>
                   <TableCell className="text-center">
                     <Switch
                       checked={expense.isPaid ?? true}

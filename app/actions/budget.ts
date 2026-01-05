@@ -3,23 +3,18 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export async function getCurrentBudget(userId: string) {
+export async function getCurrentBudget() {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  return getBudgetForMonth(userId, month, year);
+  return getBudgetForMonth(month, year);
 }
 
-export async function getBudgetForMonth(
-  userId: string,
-  month: number,
-  year: number
-) {
-  const budget = await prisma.budget.findUnique({
+export async function getBudgetForMonth(month: number, year: number) {
+  const budget = await prisma.globalBudget.findUnique({
     where: {
-      userId_month_year: {
-        userId,
+      month_year: {
         month,
         year,
       },
@@ -31,17 +26,13 @@ export async function getBudgetForMonth(
     return budget;
   }
 
-  // If no budget record exists, return user's default budget
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { defaultBudgetLimit: true },
-  });
+  // If no budget record exists, return default global budget from settings
+  const settings = await prisma.settings.findFirst();
 
-  // Return a virtual budget object using the user's default
+  // Return a virtual budget object using the default global budget
   return {
     id: "", // Virtual budget has no ID
-    userId,
-    monthlyLimit: user?.defaultBudgetLimit || 0,
+    monthlyLimit: settings?.defaultGlobalBudgetLimit || 0,
     month,
     year,
     createdAt: new Date(),
@@ -49,16 +40,15 @@ export async function getBudgetForMonth(
   };
 }
 
-export async function updateBudgetLimit(userId: string, limit: number) {
+export async function updateBudgetLimit(limit: number) {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
 
-  // Update/create budget record for current month
-  await prisma.budget.upsert({
+  // Update/create global budget record for current month
+  await prisma.globalBudget.upsert({
     where: {
-      userId_month_year: {
-        userId,
+      month_year: {
         month,
         year,
       },
@@ -67,18 +57,27 @@ export async function updateBudgetLimit(userId: string, limit: number) {
       monthlyLimit: limit,
     },
     create: {
-      userId,
       month,
       year,
       monthlyLimit: limit,
     },
   });
 
-  // Also update user's default budget for future months
-  await prisma.user.update({
-    where: { id: userId },
-    data: { defaultBudgetLimit: limit },
-  });
+  // Also update default global budget in settings for future months
+  const settings = await prisma.settings.findFirst();
+  if (settings) {
+    await prisma.settings.update({
+      where: { id: settings.id },
+      data: { defaultGlobalBudgetLimit: limit },
+    });
+  } else {
+    // Create settings if it doesn't exist
+    await prisma.settings.create({
+      data: {
+        defaultGlobalBudgetLimit: limit,
+      },
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/settings");

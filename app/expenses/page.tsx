@@ -12,13 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { X, SlidersHorizontal, ChevronUp } from "lucide-react";
+import { X, SlidersHorizontal, ChevronUp, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Expense, Category } from "@/lib/prisma";
+import type { Expense, Category, User } from "@/lib/prisma";
 
 export default function ExpensesPage() {
   const { selectedUserId } = useUser();
-  const [expenses, setExpenses] = useState<(Expense & { category: Category })[]>([]);
+  const [expenses, setExpenses] = useState<(Expense & { category: Category; user: User })[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [expenseType, setExpenseType] = useState<"all" | "regular" | "recurring" | "reminder">("all");
@@ -64,6 +64,15 @@ export default function ExpensesPage() {
     await loadData(false);
   }, [loadData]);
 
+  // Listen for refresh event from mobile header
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      handleRefresh();
+    };
+    window.addEventListener('refresh-page', handleRefreshEvent);
+    return () => window.removeEventListener('refresh-page', handleRefreshEvent);
+  }, [handleRefresh]);
+
   if (!selectedUserId) {
     return (
       <PullToRefresh onRefresh={handleRefresh}>
@@ -90,7 +99,17 @@ export default function ExpensesPage() {
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="p-4 md:p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold">Expenses</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-bold">Expenses</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              className="h-8 w-8 md:h-9 md:w-9"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
           <div className="hidden md:block">
             <AddExpenseDialog categories={categories} />
           </div>

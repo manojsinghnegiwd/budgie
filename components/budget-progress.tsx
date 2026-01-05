@@ -2,11 +2,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrency } from "@/components/currency-provider";
-import type { Budget } from "@/lib/prisma";
+import type { GlobalBudget } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
 interface BudgetProgressProps {
-  budget: Budget;
+  budget: GlobalBudget | { monthlyLimit: number; month: number; year: number };
   spent: number;
   forecastAmount?: number;
 }
@@ -38,7 +38,7 @@ export function BudgetProgress({ budget, spent, forecastAmount = 0 }: BudgetProg
       <CardHeader>
         <CardTitle>Budget Progress</CardTitle>
         <CardDescription>
-          Your spending progress for this month
+          Global spending progress for this month
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

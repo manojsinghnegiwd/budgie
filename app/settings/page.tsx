@@ -12,25 +12,22 @@ import { UserSettings } from "@/components/user-settings";
 import { UserManagement } from "@/components/user-management";
 import { NotificationSettings } from "@/components/notification-settings";
 import { PullToRefresh } from "@/components/pull-to-refresh";
-import type { Budget, Category } from "@/lib/prisma";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
+import type { GlobalBudget, Category } from "@/lib/prisma";
 
 export default function SettingsPage() {
   const { selectedUserId, selectedUser } = useUser();
-  const [budget, setBudget] = useState<Budget | null>(null);
+  const [budget, setBudget] = useState<GlobalBudget | { monthlyLimit: number; month: number; year: number } | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [settings, setSettings] = useState<{ usdConversionRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserData = useCallback(async (showLoading = true) => {
-    if (!selectedUserId) {
-      setLoading(false);
-      return;
-    }
-
+  const loadGlobalData = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     try {
       const [budgetData, categoriesData, settingsData] = await Promise.all([
-        getCurrentBudget(selectedUserId),
+        getCurrentBudget(),
         getCategories(),
         getSettings(),
       ]);
@@ -42,53 +39,24 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedUserId]);
-
-  const loadGlobalData = useCallback(async () => {
-    try {
-      const [categoriesData, settingsData] = await Promise.all([
-        getCategories(),
-        getSettings(),
-      ]);
-      setCategories(categoriesData);
-      setSettings(settingsData);
-    } catch (error) {
-      console.error("Error loading global settings:", error);
-    }
   }, []);
 
-  useEffect(() => {
-    loadUserData();
-  }, [loadUserData]);
-
-  // Load settings and categories even when no user is selected (they're global)
   useEffect(() => {
     loadGlobalData();
   }, [loadGlobalData]);
 
   const handleRefresh = useCallback(async () => {
-    await Promise.all([loadUserData(false), loadGlobalData()]);
-  }, [loadUserData, loadGlobalData]);
+    await loadGlobalData(false);
+  }, [loadGlobalData]);
 
-  if (!selectedUserId) {
-    return (
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div className="p-4 md:p-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
-          <div className="space-y-8">
-            <UserManagement />
-            <NotificationSettings />
-            {settings && (
-              <CurrencySettings initialConversionRate={settings.usdConversionRate} />
-            )}
-            {categories.length > 0 && (
-              <CategorySettings categories={categories} />
-            )}
-          </div>
-        </div>
-      </PullToRefresh>
-    );
-  }
+  // Listen for refresh event from mobile header
+  useEffect(() => {
+    const handleRefreshEvent = () => {
+      handleRefresh();
+    };
+    window.addEventListener('refresh-page', handleRefreshEvent);
+    return () => window.removeEventListener('refresh-page', handleRefreshEvent);
+  }, [handleRefresh]);
 
   if (loading || !budget || !settings) {
     return (
@@ -97,7 +65,7 @@ export default function SettingsPage() {
           <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
           <div className="space-y-8">
             <UserManagement />
-            <p className="text-muted-foreground">Loading user settings...</p>
+            <p className="text-muted-foreground">Loading settings...</p>
           </div>
         </div>
       </PullToRefresh>
@@ -107,7 +75,17 @@ export default function SettingsPage() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="p-4 md:p-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-6">Settings</h1>
+        <div className="flex items-center gap-2 mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Settings</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            className="h-8 w-8 md:h-9 md:w-9"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
         <div className="space-y-8">
           <UserManagement />
           <NotificationSettings />

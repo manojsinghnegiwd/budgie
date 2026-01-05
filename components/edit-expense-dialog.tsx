@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { updateExpense } from "@/app/actions/expenses";
-import type { Expense, Category } from "@/lib/prisma";
+import type { Expense, Category, User } from "@/lib/prisma";
 
 const expenseSchema = z.object({
   description: z.string().min(1, "Description is required"),
@@ -41,7 +41,7 @@ const expenseSchema = z.object({
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
 interface EditExpenseDialogProps {
-  expense: Expense & { category: Category };
+  expense: Expense & { category: Category; user: User };
   categories: Category[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
