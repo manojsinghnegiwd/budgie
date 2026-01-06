@@ -79,6 +79,7 @@ model Expense {
 
   @@index([userId, date])
   @@index([categoryId])
+  @@index([categoryId, date])
   @@index([userId])
   @@index([type])
   @@index([isProjected])

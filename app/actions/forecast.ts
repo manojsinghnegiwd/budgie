@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 
 export interface ForecastItem {
@@ -260,12 +261,12 @@ export interface MonthForecastSummary {
   reminderCount: number;
 }
 
-export async function getMonthForecast(
+export const getMonthForecast = cache(async (
   userId: string | null,
   month: number,
   year: number,
   categoryId?: string
-): Promise<MonthForecastSummary> {
+): Promise<MonthForecastSummary> => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -341,5 +342,5 @@ export async function getMonthForecast(
     billCount: unpaidBills + projectedBills,
     reminderCount: unpaidReminders + projectedReminders,
   };
-}
+});
 

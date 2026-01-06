@@ -1,16 +1,17 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getMonthForecast } from "./forecast";
 
-export async function getCategories() {
+export const getCategories = cache(async () => {
   return await prisma.category.findMany({
     orderBy: {
       name: "asc",
     },
   });
-}
+});
 
 export async function createCategory(data: {
   name: string;

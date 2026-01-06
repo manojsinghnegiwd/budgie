@@ -1,5 +1,6 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -11,7 +12,7 @@ export async function getCurrentBudget() {
   return getBudgetForMonth(month, year);
 }
 
-export async function getBudgetForMonth(month: number, year: number) {
+export const getBudgetForMonth = cache(async (month: number, year: number) => {
   const budget = await prisma.globalBudget.findUnique({
     where: {
       month_year: {
@@ -38,7 +39,7 @@ export async function getBudgetForMonth(month: number, year: number) {
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-}
+});
 
 export async function updateBudgetLimit(limit: number) {
   const now = new Date();

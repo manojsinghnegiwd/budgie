@@ -1,8 +1,18 @@
 "use server";
 
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getCategoryBudgetForMonth } from "./categories";
+
+// Cached helper to get shared category IDs (used in multiple places)
+const getSharedCategoryIds = cache(async (): Promise<string[]> => {
+  const sharedCategories = await prisma.category.findMany({
+    where: { isShared: true },
+    select: { id: true },
+  });
+  return sharedCategories.map((c) => c.id);
+});
 
 export async function getExpenses(
   userId: string | null,
@@ -19,12 +29,8 @@ export async function getExpenses(
   // If userId is null, fetch all expenses (global view)
   // Otherwise, fetch user's expenses + shared category expenses
   if (userId !== null) {
-    // Get shared category IDs
-    const sharedCategories = await prisma.category.findMany({
-      where: { isShared: true },
-      select: { id: true },
-    });
-    const sharedCategoryIds = sharedCategories.map((c) => c.id);
+    // Get shared category IDs (cached)
+    const sharedCategoryIds = await getSharedCategoryIds();
 
     where.OR = [
       { userId }, // User's own expenses
@@ -69,13 +75,13 @@ export async function getExpenses(
   });
 }
 
-export async function getExpensesByMonth(
+export const getExpensesByMonth = cache(async (
   userId: string | null,
   month: number,
   year: number,
   includeProjected: boolean = false,
   categoryId?: string
-) {
+) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -89,12 +95,8 @@ export async function getExpensesByMonth(
   // If userId is null, fetch all expenses (global view)
   // Otherwise, fetch user's expenses + shared category expenses
   if (userId !== null) {
-    // Get shared category IDs
-    const sharedCategories = await prisma.category.findMany({
-      where: { isShared: true },
-      select: { id: true },
-    });
-    const sharedCategoryIds = sharedCategories.map((c) => c.id);
+    // Get shared category IDs (cached)
+    const sharedCategoryIds = await getSharedCategoryIds();
 
     where.OR = [
       { userId }, // User's own expenses
@@ -123,15 +125,15 @@ export async function getExpensesByMonth(
       date: "desc",
     },
   });
-}
+});
 
-export async function getExpenseStats(
+export const getExpenseStats = cache(async (
   userId: string | null,
   month: number,
   year: number,
   includeProjected: boolean = false,
   categoryId?: string
-) {
+) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -145,12 +147,8 @@ export async function getExpenseStats(
   // If userId is null, fetch all expenses (global view)
   // Otherwise, fetch user's expenses + shared category expenses
   if (userId !== null) {
-    // Get shared category IDs
-    const sharedCategories = await prisma.category.findMany({
-      where: { isShared: true },
-      select: { id: true },
-    });
-    const sharedCategoryIds = sharedCategories.map((c) => c.id);
+    // Get shared category IDs (cached)
+    const sharedCategoryIds = await getSharedCategoryIds();
 
     where.OR = [
       { userId }, // User's own expenses
@@ -195,51 +193,114 @@ export async function getExpenseStats(
   }
 
   // Get budget limits for each category (month-aware)
-  // For global view (userId === null), we need to handle both shared and personal budgets
-  const byCategoryWithBudgets = await Promise.all(
-    Object.values(byCategory).map(async (cat) => {
-      let budgetLimit: number | null = null;
-      
-      if (userId === null) {
-        // Global view: Check if category has global limit, otherwise aggregate user budgets
-        const category = await prisma.category.findUnique({
-          where: { id: cat.categoryId },
-          select: { budgetLimit: true, isShared: true },
-        });
-        
-        if (category?.isShared && category.budgetLimit !== null) {
-          // Shared category with global limit
-          budgetLimit = category.budgetLimit;
-        } else {
-          // Personal category: aggregate all user budgets for this category
-          const allUsers = await prisma.user.findMany({ select: { id: true } });
-          const userBudgets = await Promise.all(
-            allUsers.map(async (user) => 
-              getCategoryBudgetForMonth(user.id, cat.categoryId, month, year)
-            )
-          );
-          // Sum all non-null budgets
-          const validBudgets = userBudgets.filter((b): b is number => b !== null);
-          budgetLimit = validBudgets.length > 0 ? validBudgets.reduce((sum, b) => sum + b, 0) : null;
-        }
-      } else {
-        // User-specific view: use existing logic
-        budgetLimit = await getCategoryBudgetForMonth(userId, cat.categoryId, month, year);
-      }
-      
-      return {
-        ...cat,
-        budgetLimit,
-      };
-    })
+  // Batch fetch all budget data to avoid N+1 queries
+  const categoryIds = Object.values(byCategory).map(cat => cat.categoryId);
+  
+  // Batch fetch all required data in parallel
+  const [allCategories, allMonthlyBudgets, allDefaultBudgets, allUsers] = await Promise.all([
+    // Fetch all categories to check isShared and budgetLimit
+    prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, budgetLimit: true, isShared: true },
+    }),
+    // Fetch all monthly budgets for this month/year
+    userId === null
+      ? prisma.userCategoryBudget.findMany({
+          where: {
+            categoryId: { in: categoryIds },
+            month,
+            year,
+          },
+        })
+      : prisma.userCategoryBudget.findMany({
+          where: {
+            userId,
+            categoryId: { in: categoryIds },
+            month,
+            year,
+          },
+        }),
+    // Fetch all default budgets
+    userId === null
+      ? prisma.userCategoryDefaultBudget.findMany({
+          where: { categoryId: { in: categoryIds } },
+        })
+      : prisma.userCategoryDefaultBudget.findMany({
+          where: {
+            userId,
+            categoryId: { in: categoryIds },
+          },
+        }),
+    // Fetch all users (needed for global view aggregation)
+    userId === null ? prisma.user.findMany({ select: { id: true } }) : Promise.resolve([]),
+  ]);
+
+  // Build lookup maps for O(1) access
+  const categoryMap = new Map(allCategories.map(cat => [cat.id, cat]));
+  const monthlyBudgetMap = new Map(
+    allMonthlyBudgets.map(budget => [`${budget.userId}-${budget.categoryId}`, budget.limit])
   );
+  const defaultBudgetMap = new Map(
+    allDefaultBudgets.map(budget => [`${budget.userId}-${budget.categoryId}`, budget.limit])
+  );
+
+  // Helper function to get budget for a specific user and category
+  const getBudgetForUserAndCategory = (userId: string, categoryId: string): number | null => {
+    // Check monthly budget first
+    const monthlyKey = `${userId}-${categoryId}`;
+    if (monthlyBudgetMap.has(monthlyKey)) {
+      return monthlyBudgetMap.get(monthlyKey)!;
+    }
+    
+    // Check default budget
+    if (defaultBudgetMap.has(monthlyKey)) {
+      return defaultBudgetMap.get(monthlyKey)!;
+    }
+    
+    // Check shared category budgetLimit
+    const category = categoryMap.get(categoryId);
+    if (category?.isShared && category.budgetLimit !== null) {
+      return category.budgetLimit;
+    }
+    
+    return null;
+  };
+
+  // Calculate budget limits for each category
+  const byCategoryWithBudgets = Object.values(byCategory).map((cat) => {
+    let budgetLimit: number | null = null;
+    
+    if (userId === null) {
+      // Global view: Check if category has global limit, otherwise aggregate user budgets
+      const category = categoryMap.get(cat.categoryId);
+      
+      if (category?.isShared && category.budgetLimit !== null) {
+        // Shared category with global limit
+        budgetLimit = category.budgetLimit;
+      } else {
+        // Personal category: aggregate all user budgets for this category
+        const userBudgets = allUsers
+          .map(user => getBudgetForUserAndCategory(user.id, cat.categoryId))
+          .filter((b): b is number => b !== null);
+        budgetLimit = userBudgets.length > 0 ? userBudgets.reduce((sum, b) => sum + b, 0) : null;
+      }
+    } else {
+      // User-specific view: use lookup maps
+      budgetLimit = getBudgetForUserAndCategory(userId, cat.categoryId);
+    }
+    
+    return {
+      ...cat,
+      budgetLimit,
+    };
+  });
 
   return {
     total,
     byCategory: byCategoryWithBudgets,
     count: expenses.length,
   };
-}
+});
 
 export async function createExpense(
   userId: string,
