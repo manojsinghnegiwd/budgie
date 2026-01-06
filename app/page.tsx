@@ -1,200 +1,27 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
-import { useUser } from "@/components/user-provider";
-import { getBudgetForMonth } from "@/app/actions/budget";
-import { getExpenseStats, getExpensesByMonth } from "@/app/actions/expenses";
+import { Suspense } from "react";
 import { getCategories } from "@/app/actions/categories";
-import { getMonthForecast } from "@/app/actions/forecast";
-import { DashboardStats } from "@/components/dashboard-stats";
-import { BudgetProgress } from "@/components/budget-progress";
-import { CategoryChart } from "@/components/category-chart";
-import { BudgetTabs } from "@/components/budget-tabs";
-import { SpendingTrends } from "@/components/spending-trends";
-import { MonthComparison } from "@/components/month-comparison";
-import { ExpensesTable } from "@/components/expenses-table";
-import { AddExpenseDialog } from "@/components/add-expense-dialog";
-import { PullToRefresh } from "@/components/pull-to-refresh";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import type { GlobalBudget, Expense, Category, User } from "@/lib/prisma";
+import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
+import { DashboardControls } from "@/components/dashboard/dashboard-controls";
+import { DashboardContent } from "@/components/dashboard/dashboard-content";
 
-export default function Dashboard() {
-  const { selectedUserId } = useUser();
+interface DashboardProps {
+  searchParams: Promise<{ month?: string; year?: string }>;
+}
+
+export default async function Dashboard({ searchParams }: DashboardProps) {
+  // Pre-fetch categories for the AddExpenseDialog
+  const categories = await getCategories();
+
+  // Parse month and year from search params, default to current month/year
+  const params = await searchParams;
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
-  const [budget, setBudget] = useState<GlobalBudget | { monthlyLimit: number; month: number; year: number } | null>(null);
-  const [stats, setStats] = useState<{
-    total: number;
-    byCategory: Array<{ name: string; color: string; amount: number; budgetLimit: number | null; categoryId?: string }>;
-    count: number;
-  } | null>(null);
-  const [currentExpenses, setCurrentExpenses] = useState<(Expense & { category: Category; user: User })[]>([]);
-  const [previousExpenses, setPreviousExpenses] = useState<(Expense & { category: Category; user: User })[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [monthForecast, setMonthForecast] = useState<{ totalAmount: number; billCount: number; reminderCount: number } | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const loadData = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    const previousMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
-    const previousYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
-
-    try {
-      // Fetch global stats (null userId = all users)
-      const [budgetData, statsData, currentExpensesData, previousExpensesData, categoriesData, monthForecast] =
-        await Promise.all([
-          getBudgetForMonth(selectedMonth, selectedYear),
-          getExpenseStats(null, selectedMonth, selectedYear, false), // Global stats - exclude projected - forecast handles them separately
-          getExpensesByMonth(null, selectedMonth, selectedYear, true), // Global expenses - include projected for charts
-          getExpensesByMonth(null, previousMonth, previousYear, false), // Global expenses - don't include projected for past
-          getCategories(),
-          getMonthForecast(null, selectedMonth, selectedYear), // Global forecast
-        ]);
-
-      setBudget(budgetData);
-      setStats(statsData);
-      setCurrentExpenses(currentExpensesData);
-      setPreviousExpenses(previousExpensesData);
-      setCategories(categoriesData);
-      setMonthForecast(monthForecast);
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedMonth, selectedYear]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleRefresh = useCallback(async () => {
-    await loadData(false);
-  }, [loadData]);
-
-  // Listen for refresh event from mobile header
-  useEffect(() => {
-    const handleRefreshEvent = () => {
-      handleRefresh();
-    };
-    window.addEventListener('refresh-page', handleRefreshEvent);
-    return () => window.removeEventListener('refresh-page', handleRefreshEvent);
-  }, [handleRefresh]);
-
-  if (loading || !budget || !stats) {
-    return (
-      <PullToRefresh onRefresh={handleRefresh}>
-        <div className="p-4 md:p-8">
-          <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-4">Loading...</p>
-        </div>
-      </PullToRefresh>
-    );
-  }
-
-  // Generate month options
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  // Generate year options (current year ± 5 years)
-  const currentYear = now.getFullYear();
-  const yearOptions = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+  const month = params.month ? parseInt(params.month) : now.getMonth() + 1;
+  const year = params.year ? parseInt(params.year) : now.getFullYear();
 
   return (
-    <PullToRefresh onRefresh={handleRefresh}>
-      <div className="p-4 md:p-8 space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl md:text-3xl font-bold">Dashboard</h1>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRefresh}
-                className="h-8 w-8 md:h-9 md:w-9"
-              >
-                <RefreshCw className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select
-                value={selectedMonth.toString()}
-                onValueChange={(value) => setSelectedMonth(parseInt(value))}
-              >
-                <SelectTrigger className="w-[120px] md:w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthNames.map((month, index) => (
-                    <SelectItem key={index + 1} value={(index + 1).toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={selectedYear.toString()}
-                onValueChange={(value) => setSelectedYear(parseInt(value))}
-              >
-                <SelectTrigger className="w-[90px] md:w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearOptions.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="hidden md:block">
-            {selectedUserId && <AddExpenseDialog categories={categories} />}
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <DashboardStats stats={stats} budget={budget} forecastAmount={monthForecast?.totalAmount ?? 0} />
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <BudgetProgress budget={budget} spent={stats.total} forecastAmount={monthForecast?.totalAmount ?? 0} />
-          <CategoryChart data={stats.byCategory} />
-        </div>
-
-        <BudgetTabs month={selectedMonth} year={selectedYear} />
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <SpendingTrends 
-            expenses={currentExpenses} 
-            month={selectedMonth}
-            year={selectedYear}
-          />
-          <MonthComparison
-            currentExpenses={currentExpenses}
-            previousExpenses={previousExpenses}
-            currentMonth={selectedMonth}
-            currentYear={selectedYear}
-          />
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Expenses</CardTitle>
-            <CardDescription>All expenses for {monthNames[selectedMonth - 1]} {selectedYear}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ExpensesTable expenses={currentExpenses} categories={categories} />
-          </CardContent>
-        </Card>
-      </div>
-    </PullToRefresh>
+    <DashboardWrapper>
+      <DashboardControls categories={categories} month={month} year={year} />
+      <DashboardContent month={month} year={year} />
+    </DashboardWrapper>
   );
 }

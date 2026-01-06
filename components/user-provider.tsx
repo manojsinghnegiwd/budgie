@@ -34,9 +34,15 @@ export function UserProvider({
     const stored = localStorage.getItem("selectedUserId");
     if (stored && users.some((u) => u.id === stored)) {
       setSelectedUserIdState(stored);
+      // Sync to cookie for server-side access
+      document.cookie = `selectedUserId=${stored}; path=/; max-age=31536000; SameSite=Lax`;
     } else if (users.length > 0 && !stored) {
       // If no stored user but users exist, select first one
-      setSelectedUserIdState(users[0].id);
+      const firstUserId = users[0].id;
+      setSelectedUserIdState(firstUserId);
+      // Sync to cookie and localStorage
+      localStorage.setItem("selectedUserId", firstUserId);
+      document.cookie = `selectedUserId=${firstUserId}; path=/; max-age=31536000; SameSite=Lax`;
     }
   }, [users]);
 
@@ -44,8 +50,11 @@ export function UserProvider({
     setSelectedUserIdState(userId);
     if (userId) {
       localStorage.setItem("selectedUserId", userId);
+      // Also set cookie for server-side access
+      document.cookie = `selectedUserId=${userId}; path=/; max-age=31536000; SameSite=Lax`;
     } else {
       localStorage.removeItem("selectedUserId");
+      document.cookie = "selectedUserId=; path=/; max-age=0";
     }
   };
 

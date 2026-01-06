@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -57,13 +57,35 @@ type ReminderExpenseFormValues = z.infer<typeof reminderExpenseSchema>;
 
 interface AddExpenseDialogProps {
   categories: Category[];
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }
 
-export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
-  const [open, setOpen] = useState(false);
+export function AddExpenseDialog({ 
+  categories, 
+  open: controlledOpen, 
+  onOpenChange: controlledOnOpenChange,
+  showTrigger = true 
+}: AddExpenseDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expenseType, setExpenseType] = useState<"regular" | "recurring" | "reminder">("regular");
   const { selectedUserId } = useUser();
+
+  // Use controlled state if provided, otherwise use internal state
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = controlledOnOpenChange || setInternalOpen;
+
+  // Reset expense type when dialog opens
+  useEffect(() => {
+    if (open) {
+      setExpenseType("regular");
+      form.reset();
+      recurringForm.reset();
+      reminderForm.reset();
+    }
+  }, [open]);
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -156,27 +178,20 @@ export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Expense
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Expense</DialogTitle>
-          <DialogDescription>
-            Record a new expense, recurring bill, or reminder.
-          </DialogDescription>
-        </DialogHeader>
-        <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as "regular" | "recurring" | "reminder")}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="regular">Regular</TabsTrigger>
-            <TabsTrigger value="recurring">Recurring</TabsTrigger>
-            <TabsTrigger value="reminder">Reminder</TabsTrigger>
-          </TabsList>
+  const dialogContent = (
+    <>
+      <DialogHeader>
+        <DialogTitle>Add Expense</DialogTitle>
+        <DialogDescription>
+          Record a new expense, recurring bill, or reminder.
+        </DialogDescription>
+      </DialogHeader>
+      <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as "regular" | "recurring" | "reminder")}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="regular">Regular</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring</TabsTrigger>
+          <TabsTrigger value="reminder">Reminder</TabsTrigger>
+        </TabsList>
           
           <TabsContent value="regular">
             <Form {...form}>
@@ -553,6 +568,25 @@ export function AddExpenseDialog({ categories }: AddExpenseDialogProps) {
             </Form>
           </TabsContent>
         </Tabs>
+    </>
+  );
+
+  // If controlled (no trigger), just return the content
+  if (!showTrigger) {
+    return dialogContent;
+  }
+
+  // Otherwise, return the full dialog with trigger
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Expense
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        {dialogContent}
       </DialogContent>
     </Dialog>
   );
