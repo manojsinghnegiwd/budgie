@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState, use } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useUser } from "@/components/user-provider";
 import { getExpenses } from "@/app/actions/expenses";
 import { getCategories } from "@/app/actions/categories";
@@ -21,20 +21,28 @@ function ExpensesDataInner({
   includeProjected, 
   startDate, 
   endDate,
-  userId 
-}: ExpensesDataClientProps & { userId: string | null }) {
+  userId,
+  isAllUsers 
+}: ExpensesDataClientProps & { userId: string | null; isAllUsers: boolean }) {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) {
+    // Only show "no user" message if not in "all users" mode AND no userId
+    if (!isAllUsers && !userId) {
       setLoading(false);
+      setExpenses([]);
+      setCategories([]);
       return;
     }
 
     const fetchData = async () => {
       setLoading(true);
+      // Reset data immediately when userId changes to show loading state
+      setExpenses([]);
+      setCategories([]);
+      
       try {
         const [expensesData, categoriesData] = await Promise.all([
           getExpenses(userId, {
@@ -55,9 +63,10 @@ function ExpensesDataInner({
     };
 
     fetchData();
-  }, [userId, expenseType, includeProjected, startDate, endDate]);
+  }, [userId, isAllUsers, expenseType, includeProjected, startDate, endDate]);
 
-  if (!userId) {
+  // Only show "no user" message if not in "all users" mode
+  if (!isAllUsers && !userId) {
     return (
       <div className="p-4 md:p-8">
         <p className="text-muted-foreground mt-4">Please select a user from the header.</p>
@@ -73,14 +82,27 @@ function ExpensesDataInner({
 }
 
 export function ExpensesDataClient(props: ExpensesDataClientProps) {
-  const { selectedUserId } = useUser();
+  const { viewUserId, selectedUserId } = useUser();
+  
+  // Check if "All Users" is selected
+  const isAllUsers = viewUserId === "all";
+  
+  // Resolve viewUserId: "all" -> null (for API), null -> selectedUserId, or specific userId
+  const userId = isAllUsers 
+    ? null 
+    : viewUserId === null 
+      ? selectedUserId 
+      : viewUserId;
+  
+  // Create a unique key that includes viewUserId to force re-render when it changes
+  const suspenseKey = `${viewUserId || 'null'}-${isAllUsers ? 'all' : userId}-${props.expenseType}-${props.includeProjected}-${props.startDate}-${props.endDate}`;
   
   return (
     <Suspense 
-      key={`${selectedUserId}-${props.expenseType}-${props.includeProjected}-${props.startDate}-${props.endDate}`} 
+      key={suspenseKey}
       fallback={<ExpensesSkeleton />}
     >
-      <ExpensesDataInner {...props} userId={selectedUserId} />
+      <ExpensesDataInner {...props} userId={userId} isAllUsers={isAllUsers} />
     </Suspense>
   );
 }

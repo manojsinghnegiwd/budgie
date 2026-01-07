@@ -144,18 +144,6 @@ export async function getCategoryBudgetForMonth(
   return null;
 }
 
-export async function getUserCategoryBudget(
-  userId: string,
-  categoryId: string
-): Promise<number | null> {
-  // Use current month/year for backward compatibility
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-  
-  return getCategoryBudgetForMonth(userId, categoryId, month, year);
-}
-
 export async function setUserCategoryBudget(
   userId: string,
   categoryId: string,
@@ -234,79 +222,6 @@ export async function deleteUserCategoryBudget(
   revalidatePath("/");
 }
 
-export async function getCategoriesWithBudgets(userId: string) {
-  const categories = await prisma.category.findMany({
-    orderBy: {
-      name: "asc",
-    },
-    include: {
-      userBudgets: {
-        where: { userId },
-      },
-    },
-  });
-
-  return categories.map((category) => {
-    let effectiveLimit: number | null = null;
-
-    if (category.isShared) {
-      effectiveLimit = category.budgetLimit;
-    } else {
-      // Check for user-specific budget
-      if (category.userBudgets.length > 0) {
-        effectiveLimit = category.userBudgets[0].limit;
-      }
-    }
-
-    return {
-      ...category,
-      effectiveLimit,
-    };
-  });
-}
-
-export async function getAllCategoriesWithGlobalBudgets(
-  month: number,
-  year: number
-) {
-  const categories = await prisma.category.findMany({
-    orderBy: {
-      name: "asc",
-    },
-  });
-
-  const allUsers = await prisma.user.findMany({ select: { id: true } });
-
-  return await Promise.all(
-    categories.map(async (category) => {
-      let budgetLimit: number | null = null;
-
-      if (category.isShared && category.budgetLimit !== null) {
-        // Shared category with global limit
-        budgetLimit = category.budgetLimit;
-      } else {
-        // Personal category: aggregate all user budgets for this category
-        const userBudgets = await Promise.all(
-          allUsers.map(async (user) =>
-            getCategoryBudgetForMonth(user.id, category.id, month, year)
-          )
-        );
-        // Sum all non-null budgets
-        const validBudgets = userBudgets.filter((b): b is number => b !== null);
-        budgetLimit = validBudgets.length > 0 ? validBudgets.reduce((sum, b) => sum + b, 0) : null;
-      }
-
-      return {
-        id: category.id,
-        name: category.name,
-        color: category.color,
-        icon: category.icon,
-        budgetLimit,
-      };
-    })
-  );
-}
-
 export async function getSharedCategoryBudgetsWithSpending(
   month: number,
   year: number
@@ -346,7 +261,7 @@ export async function getSharedCategoryBudgetsWithSpending(
       const totalSpending = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
       // Get forecast amount for this category (global view, null userId)
-      const forecast = await getMonthForecast(null, month, year, category.id);
+      const forecast = await getMonthForecast(null, month, year, [category.id]);
 
       return {
         id: category.id,
@@ -437,7 +352,7 @@ export async function getUserCategoryBudgetsWithSpending(
       const totalSpending = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
       // Get forecast amount for this user and category
-      const forecast = await getMonthForecast(userId, month, year, categoryId);
+      const forecast = await getMonthForecast(userId, month, year, [categoryId]);
 
       return {
         id: category.id,

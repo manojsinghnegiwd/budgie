@@ -14,8 +14,8 @@ export async function CategoryTrendsSection({ userId, categoryId, month, year }:
   const previousYear = month === 1 ? year - 1 : year;
 
   const [currentExpenses, previousExpenses] = await Promise.all([
-    getExpensesByMonth(userId, month, year, true, categoryId),
-    getExpensesByMonth(userId, previousMonth, previousYear, false, categoryId),
+    getExpensesByMonth(userId, month, year, true, [categoryId]),
+    getExpensesByMonth(userId, previousMonth, previousYear, false, [categoryId]),
   ]);
 
   return (

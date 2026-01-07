@@ -36,6 +36,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Category } from "@/lib/prisma";
 
 const expenseSchema = z.object({
+  userId: z.string().min(1, "User is required"),
   description: z.string().min(1, "Description is required"),
   amount: z.number().positive("Amount must be positive"),
   date: z.date(),
@@ -71,25 +72,16 @@ export function AddExpenseDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expenseType, setExpenseType] = useState<"regular" | "recurring" | "reminder">("regular");
-  const { selectedUserId } = useUser();
+  const { selectedUserId, users } = useUser();
 
   // Use controlled state if provided, otherwise use internal state
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = controlledOnOpenChange || setInternalOpen;
 
-  // Reset expense type when dialog opens
-  useEffect(() => {
-    if (open) {
-      setExpenseType("regular");
-      form.reset();
-      recurringForm.reset();
-      reminderForm.reset();
-    }
-  }, [open]);
-
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
+      userId: selectedUserId || "",
       description: "",
       amount: 0,
       date: new Date(),
@@ -100,6 +92,7 @@ export function AddExpenseDialog({
   const recurringForm = useForm<RecurringExpenseFormValues>({
     resolver: zodResolver(recurringExpenseSchema),
     defaultValues: {
+      userId: selectedUserId || "",
       description: "",
       amount: 0,
       date: new Date(),
@@ -113,6 +106,7 @@ export function AddExpenseDialog({
   const reminderForm = useForm<ReminderExpenseFormValues>({
     resolver: zodResolver(reminderExpenseSchema),
     defaultValues: {
+      userId: selectedUserId || "",
       description: "",
       amount: 0,
       date: new Date(),
@@ -120,12 +114,58 @@ export function AddExpenseDialog({
     },
   });
 
+  // Reset expense type and forms when dialog opens
+  useEffect(() => {
+    if (open) {
+      setExpenseType("regular");
+      const defaultUserId = selectedUserId || "";
+      form.reset({
+        userId: defaultUserId,
+        description: "",
+        amount: 0,
+        date: new Date(),
+        categoryId: "",
+      });
+      recurringForm.reset({
+        userId: defaultUserId,
+        description: "",
+        amount: 0,
+        date: new Date(),
+        categoryId: "",
+        frequency: "monthly",
+        startDate: new Date(),
+        endDate: new Date(),
+      });
+      reminderForm.reset({
+        userId: defaultUserId,
+        description: "",
+        amount: 0,
+        date: new Date(),
+        categoryId: "",
+      });
+    }
+  }, [open, selectedUserId, form, recurringForm, reminderForm]);
+
+  // Update form defaults when selectedUserId changes (when dialog is already open)
+  useEffect(() => {
+    if (selectedUserId && open) {
+      form.setValue("userId", selectedUserId);
+      recurringForm.setValue("userId", selectedUserId);
+      reminderForm.setValue("userId", selectedUserId);
+    }
+  }, [selectedUserId, open, form, recurringForm, reminderForm]);
+
   const onSubmit = async (values: ExpenseFormValues) => {
-    if (!selectedUserId) return;
+    if (!values.userId) return;
 
     setIsSubmitting(true);
     try {
-      await createExpense(selectedUserId, values);
+      await createExpense(values.userId, {
+        description: values.description,
+        amount: values.amount,
+        date: values.date,
+        categoryId: values.categoryId,
+      });
       form.reset();
       setOpen(false);
     } catch (error) {
@@ -136,11 +176,11 @@ export function AddExpenseDialog({
   };
 
   const onSubmitRecurring = async (values: RecurringExpenseFormValues) => {
-    if (!selectedUserId) return;
+    if (!values.userId) return;
 
     setIsSubmitting(true);
     try {
-      await createRecurringExpense(selectedUserId, {
+      await createRecurringExpense(values.userId, {
         description: values.description,
         amount: values.amount,
         categoryId: values.categoryId,
@@ -159,11 +199,11 @@ export function AddExpenseDialog({
   };
 
   const onSubmitReminder = async (values: ReminderExpenseFormValues) => {
-    if (!selectedUserId) return;
+    if (!values.userId) return;
 
     setIsSubmitting(true);
     try {
-      await createReminderExpense(selectedUserId, {
+      await createReminderExpense(values.userId, {
         description: values.description,
         amount: values.amount,
         date: values.date,
@@ -196,6 +236,30 @@ export function AddExpenseDialog({
           <TabsContent value="regular">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="userId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>User</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a user" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {users.map((user) => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"
@@ -287,7 +351,7 @@ export function AddExpenseDialog({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting || !selectedUserId}>
+                  <Button type="submit" disabled={isSubmitting || !form.watch("userId")}>
                     {isSubmitting ? "Adding..." : "Add Expense"}
                   </Button>
                 </div>
@@ -298,6 +362,30 @@ export function AddExpenseDialog({
           <TabsContent value="recurring">
             <Form {...recurringForm}>
               <form onSubmit={recurringForm.handleSubmit(onSubmitRecurring)} className="space-y-4">
+                <FormField
+                  control={recurringForm.control}
+                  name="userId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={recurringForm.control}
                   name="description"
@@ -458,7 +546,7 @@ export function AddExpenseDialog({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting || !selectedUserId}>
+                  <Button type="submit" disabled={isSubmitting || !recurringForm.watch("userId")}>
                     {isSubmitting ? "Adding..." : "Add Recurring Bill"}
                   </Button>
                 </div>
@@ -469,6 +557,30 @@ export function AddExpenseDialog({
           <TabsContent value="reminder">
             <Form {...reminderForm}>
               <form onSubmit={reminderForm.handleSubmit(onSubmitReminder)} className="space-y-4">
+                <FormField
+                  control={reminderForm.control}
+                  name="userId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={reminderForm.control}
                   name="description"
@@ -560,7 +672,7 @@ export function AddExpenseDialog({
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting || !selectedUserId}>
+                  <Button type="submit" disabled={isSubmitting || !reminderForm.watch("userId")}>
                     {isSubmitting ? "Adding..." : "Add Reminder"}
                   </Button>
                 </div>

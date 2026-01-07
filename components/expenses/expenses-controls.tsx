@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect } from "react";
 import { useUser } from "@/components/user-provider";
 import { AddExpenseDialog } from "@/components/add-expense-dialog";
+import { UserViewFilter } from "@/components/user-view-filter";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -70,9 +71,18 @@ export function ExpensesControls({
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <div className="hidden md:block">
-          {selectedUserId && <AddExpenseDialog categories={categories} />}
+        <div className="flex items-center gap-2">
+          <div className="hidden md:block">
+            <UserViewFilter className="w-[160px]" />
+          </div>
+          <div className="hidden md:block">
+            {selectedUserId && <AddExpenseDialog categories={categories} />}
+          </div>
         </div>
+      </div>
+      {/* Mobile User View Filter */}
+      <div className="mb-4 md:hidden">
+        <UserViewFilter className="w-full" />
       </div>
       {/* Mobile Filter Toggle */}
       <div className="mb-4 md:hidden">

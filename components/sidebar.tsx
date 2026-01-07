@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Receipt, Settings, Tag, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/components/currency-provider";
@@ -26,6 +26,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { currency, setCurrency } = useCurrency();
   const { selectedUserId, setSelectedUserId, users, selectedUser } = useUser();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -155,7 +156,10 @@ export function Sidebar() {
           </label>
           <Select
             value={selectedUserId || ""}
-            onValueChange={(value) => setSelectedUserId(value || null)}
+            onValueChange={(value) => {
+              setSelectedUserId(value || null);
+              router.refresh(); // Refresh the page to re-fetch data with new selected user
+            }}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select a user" />

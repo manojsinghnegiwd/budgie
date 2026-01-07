@@ -45,15 +45,6 @@ export type Expense = {
   category: Category;
 };
 
-export type Budget = {
-  id: string;
-  monthlyLimit: number;
-  month: number;
-  year: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
 export type GlobalBudget = {
   id: string;
   monthlyLimit: number;

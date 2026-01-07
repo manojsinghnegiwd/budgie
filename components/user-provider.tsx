@@ -6,6 +6,8 @@ import { User } from "@prisma/client";
 type UserContextType = {
   selectedUserId: string | null;
   setSelectedUserId: (userId: string | null) => void;
+  viewUserId: string | null | "all";
+  setViewUserId: (userId: string | null | "all") => void;
   users: User[];
   selectedUser: User | null;
   updateUserInState: (updatedUser: User) => void;
@@ -27,22 +29,47 @@ export function UserProvider({
   const [selectedUserId, setSelectedUserIdState] = useState<string | null>(
     initialUserId || null
   );
+  const [viewUserId, setViewUserIdState] = useState<string | null | "all">(null);
   const [users, setUsers] = useState<User[]>(initialUsers);
 
   useEffect(() => {
     // Load from localStorage on mount
     const stored = localStorage.getItem("selectedUserId");
+    let effectiveSelectedUserId: string | null = null;
+    
     if (stored && users.some((u) => u.id === stored)) {
       setSelectedUserIdState(stored);
+      effectiveSelectedUserId = stored;
       // Sync to cookie for server-side access
       document.cookie = `selectedUserId=${stored}; path=/; max-age=31536000; SameSite=Lax`;
     } else if (users.length > 0 && !stored) {
       // If no stored user but users exist, select first one
       const firstUserId = users[0].id;
       setSelectedUserIdState(firstUserId);
+      effectiveSelectedUserId = firstUserId;
       // Sync to cookie and localStorage
       localStorage.setItem("selectedUserId", firstUserId);
       document.cookie = `selectedUserId=${firstUserId}; path=/; max-age=31536000; SameSite=Lax`;
+    } else if (stored) {
+      effectiveSelectedUserId = stored;
+    }
+
+    // Load viewUserId from localStorage on mount
+    const storedViewUserId = localStorage.getItem("viewUserId");
+    if (storedViewUserId === "all") {
+      setViewUserIdState("all");
+      document.cookie = `viewUserId=all; path=/; max-age=31536000; SameSite=Lax`;
+    } else if (storedViewUserId && users.some((u) => u.id === storedViewUserId)) {
+      setViewUserIdState(storedViewUserId);
+      document.cookie = `viewUserId=${storedViewUserId}; path=/; max-age=31536000; SameSite=Lax`;
+    } else {
+      // Default to selectedUserId if available, otherwise null (will be resolved to selectedUserId)
+      setViewUserIdState(effectiveSelectedUserId);
+      if (effectiveSelectedUserId) {
+        document.cookie = `viewUserId=${effectiveSelectedUserId}; path=/; max-age=31536000; SameSite=Lax`;
+      } else {
+        document.cookie = `viewUserId=; path=/; max-age=0`;
+      }
     }
   }, [users]);
 
@@ -55,6 +82,20 @@ export function UserProvider({
     } else {
       localStorage.removeItem("selectedUserId");
       document.cookie = "selectedUserId=; path=/; max-age=0";
+    }
+  };
+
+  const setViewUserId = (userId: string | null | "all") => {
+    setViewUserIdState(userId);
+    if (userId === "all") {
+      localStorage.setItem("viewUserId", "all");
+      document.cookie = `viewUserId=all; path=/; max-age=31536000; SameSite=Lax`;
+    } else if (userId) {
+      localStorage.setItem("viewUserId", userId);
+      document.cookie = `viewUserId=${userId}; path=/; max-age=31536000; SameSite=Lax`;
+    } else {
+      localStorage.removeItem("viewUserId");
+      document.cookie = "viewUserId=; path=/; max-age=0";
     }
   };
 
@@ -79,6 +120,8 @@ export function UserProvider({
       value={{
         selectedUserId,
         setSelectedUserId,
+        viewUserId,
+        setViewUserId,
         users,
         selectedUser,
         updateUserInState,

@@ -1,4 +1,4 @@
-import { getBudgetForMonth } from "@/app/actions/budget";
+import { getBudgetForMonth, getCategoryBudgetSum } from "@/app/actions/budget";
 import { getExpenseStats } from "@/app/actions/expenses";
 import { getMonthForecast } from "@/app/actions/forecast";
 import { DashboardStats } from "@/components/dashboard-stats";
@@ -8,14 +8,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface StatsSectionProps {
   month: number;
   year: number;
+  viewUserId: string | null;
+  categoryIds: string[] | null;
 }
 
-export async function StatsSection({ month, year }: StatsSectionProps) {
-  const [budget, stats, forecast] = await Promise.all([
+export async function StatsSection({ month, year, viewUserId, categoryIds }: StatsSectionProps) {
+  const [globalBudget, stats, forecast] = await Promise.all([
     getBudgetForMonth(month, year),
-    getExpenseStats(null, month, year, false),
-    getMonthForecast(null, month, year),
+    getExpenseStats(viewUserId, month, year, false, categoryIds),
+    getMonthForecast(viewUserId, month, year, categoryIds),
   ]);
+
+  // If categoryIds is provided, use category budget sum; otherwise use global budget
+  const categoryBudgetSum = categoryIds 
+    ? await getCategoryBudgetSum(viewUserId, categoryIds, month, year)
+    : null;
+  
+  const budget = categoryBudgetSum !== null 
+    ? { ...globalBudget, monthlyLimit: categoryBudgetSum }
+    : globalBudget;
 
   if (!budget || !stats) {
     return (

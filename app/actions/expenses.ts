@@ -3,7 +3,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getCategoryBudgetForMonth } from "./categories";
 
 // Cached helper to get shared category IDs (used in multiple places)
 const getSharedCategoryIds = cache(async (): Promise<string[]> => {
@@ -80,7 +79,7 @@ export const getExpensesByMonth = cache(async (
   month: number,
   year: number,
   includeProjected: boolean = false,
-  categoryId?: string
+  categoryIds?: string[] | null
 ) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -107,8 +106,8 @@ export const getExpensesByMonth = cache(async (
   }
   // If userId is null, no userId filter - get all expenses
 
-  if (categoryId) {
-    where.categoryId = categoryId;
+  if (categoryIds && categoryIds.length > 0) {
+    where.categoryId = { in: categoryIds };
   }
 
   if (!includeProjected) {
@@ -132,7 +131,7 @@ export const getExpenseStats = cache(async (
   month: number,
   year: number,
   includeProjected: boolean = false,
-  categoryId?: string
+  categoryIds?: string[] | null
 ) => {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
@@ -159,8 +158,8 @@ export const getExpenseStats = cache(async (
   }
   // If userId is null, no userId filter - get all expenses
 
-  if (categoryId) {
-    where.categoryId = categoryId;
+  if (categoryIds && categoryIds.length > 0) {
+    where.categoryId = { in: categoryIds };
   }
 
   if (!includeProjected) {
@@ -194,20 +193,20 @@ export const getExpenseStats = cache(async (
 
   // Get budget limits for each category (month-aware)
   // Batch fetch all budget data to avoid N+1 queries
-  const categoryIds = Object.values(byCategory).map(cat => cat.categoryId);
+  const expenseCategoryIds = Object.values(byCategory).map(cat => cat.categoryId);
   
   // Batch fetch all required data in parallel
   const [allCategories, allMonthlyBudgets, allDefaultBudgets, allUsers] = await Promise.all([
     // Fetch all categories to check isShared and budgetLimit
     prisma.category.findMany({
-      where: { id: { in: categoryIds } },
+      where: { id: { in: expenseCategoryIds } },
       select: { id: true, budgetLimit: true, isShared: true },
     }),
     // Fetch all monthly budgets for this month/year
     userId === null
       ? prisma.userCategoryBudget.findMany({
           where: {
-            categoryId: { in: categoryIds },
+            categoryId: { in: expenseCategoryIds },
             month,
             year,
           },
@@ -215,7 +214,7 @@ export const getExpenseStats = cache(async (
       : prisma.userCategoryBudget.findMany({
           where: {
             userId,
-            categoryId: { in: categoryIds },
+            categoryId: { in: expenseCategoryIds },
             month,
             year,
           },
@@ -223,12 +222,12 @@ export const getExpenseStats = cache(async (
     // Fetch all default budgets
     userId === null
       ? prisma.userCategoryDefaultBudget.findMany({
-          where: { categoryId: { in: categoryIds } },
+          where: { categoryId: { in: expenseCategoryIds } },
         })
       : prisma.userCategoryDefaultBudget.findMany({
           where: {
             userId,
-            categoryId: { in: categoryIds },
+            categoryId: { in: expenseCategoryIds },
           },
         }),
     // Fetch all users (needed for global view aggregation)
@@ -553,48 +552,5 @@ export async function completeReminderExpense(id: string) {
 
   revalidatePath("/");
   revalidatePath("/expenses");
-}
-
-export async function processRecurringExpenses() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // Find all projected recurring expenses that are due today or past due
-  const dueExpenses = await prisma.expense.findMany({
-    where: {
-      type: "recurring",
-      isProjected: true,
-      date: {
-        lte: today,
-      },
-    },
-    include: {
-      category: true,
-    },
-  });
-
-  // Mark projected expenses as actual (no longer projected) when their date arrives
-  // Keep them as unpaid since they're recurring bills
-  const processedExpenses = await prisma.$transaction(
-    dueExpenses.map((expense) =>
-      prisma.expense.update({
-        where: { id: expense.id },
-        data: {
-          isProjected: false,
-          isPaid: false, // Keep recurring expenses as unpaid
-        },
-        include: {
-          category: true,
-        },
-      })
-    )
-  );
-
-  if (processedExpenses.length > 0) {
-    revalidatePath("/");
-    revalidatePath("/expenses");
-  }
-
-  return processedExpenses;
 }
 

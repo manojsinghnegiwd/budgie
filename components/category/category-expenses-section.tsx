@@ -24,7 +24,7 @@ export async function CategoryExpensesSection({
   year 
 }: CategoryExpensesSectionProps) {
   const [expenses, categories] = await Promise.all([
-    getExpensesByMonth(userId, month, year, true, categoryId),
+    getExpensesByMonth(userId, month, year, true, [categoryId]),
     getCategories(),
   ]);
 

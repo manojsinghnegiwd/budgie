@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface ExpensesSectionProps {
   month: number;
   year: number;
+  viewUserId: string | null;
+  categoryIds: string[] | null;
 }
 
 const monthNames = [
@@ -13,9 +15,9 @@ const monthNames = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-export async function ExpensesSection({ month, year }: ExpensesSectionProps) {
+export async function ExpensesSection({ month, year, viewUserId, categoryIds }: ExpensesSectionProps) {
   const [expenses, categories] = await Promise.all([
-    getExpensesByMonth(null, month, year, true),
+    getExpensesByMonth(viewUserId, month, year, true, categoryIds),
     getCategories(),
   ]);
 

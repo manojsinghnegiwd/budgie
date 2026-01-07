@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { getCategories } from "@/app/actions/categories";
 import { DashboardWrapper } from "@/components/dashboard/dashboard-wrapper";
 import { ExpensesControlsClient } from "@/components/expenses/expenses-controls-client";
@@ -12,6 +13,19 @@ interface ExpensesPageProps {
   }>;
 }
 
+// Helper function to resolve viewUserId
+function resolveViewUserId(
+  viewUserId: string | null | undefined,
+  selectedUserId: string | null
+): string | null {
+  if (viewUserId === "all") return null; // null means all users in server actions
+  if (viewUserId === null || viewUserId === undefined) {
+    // Default to current user
+    return selectedUserId;
+  }
+  return viewUserId;
+}
+
 export default async function ExpensesPage({ searchParams }: ExpensesPageProps) {
   const categories = await getCategories();
   const params = await searchParams;
@@ -20,6 +34,17 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const includeProjected = params.includeProjected !== "false";
   const startDate = params.startDate || "";
   const endDate = params.endDate || "";
+
+  // Get viewUserId and selectedUserId from cookies
+  const cookieStore = await cookies();
+  const viewUserIdCookie = cookieStore.get("viewUserId")?.value;
+  const selectedUserId = cookieStore.get("selectedUserId")?.value || null;
+  
+  // Resolve the actual userId to use for data fetching
+  const viewUserId = resolveViewUserId(
+    viewUserIdCookie === "all" ? "all" : viewUserIdCookie || null,
+    selectedUserId
+  );
 
   return (
     <DashboardWrapper>

@@ -14,8 +14,8 @@ interface CategoryBudgetSectionProps {
 
 export async function CategoryBudgetSection({ userId, categoryId, month, year }: CategoryBudgetSectionProps) {
   const [stats, forecast, budgetLimit] = await Promise.all([
-    getExpenseStats(userId, month, year, false, categoryId),
-    getMonthForecast(userId, month, year, categoryId),
+    getExpenseStats(userId, month, year, false, [categoryId]),
+    getMonthForecast(userId, month, year, [categoryId]),
     getCategoryBudgetForMonth(userId, categoryId, month, year),
   ]);
 

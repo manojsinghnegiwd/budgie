@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Receipt, Settings, Plus } from "lucide-react";
+import { LayoutDashboard, Receipt, Settings, Plus, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { getCategories } from "@/app/actions/categories";
 import { AddExpenseDialog } from "@/components/add-expense-dialog";
 import type { Category } from "@/lib/prisma";
@@ -20,19 +20,35 @@ const navigation = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const fetchCategories = async () => {
+    const cats = await getCategories();
+    setCategories(cats);
+  };
+
   useEffect(() => {
-    const fetchCategories = async () => {
-      const cats = await getCategories();
-      setCategories(cats);
-    };
     fetchCategories();
   }, []);
+
+  // Refresh categories when navigating away from settings (in case they were edited)
+  useEffect(() => {
+    if (pathname !== "/settings") {
+      // Small delay to ensure any updates have completed
+      const timer = setTimeout(() => {
+        fetchCategories();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [pathname]);
 
   // Split navigation items for left and right of the plus button
   const leftItems = navigation.slice(0, 2);
   const rightItems = navigation.slice(2);
+  
+  // Check if we're on a category page
+  const isCategoryPage = pathname?.startsWith("/category/");
 
   return (
     <>
@@ -69,6 +85,20 @@ export function MobileBottomNav() {
             </button>
           </div>
 
+          {/* Categories Button */}
+          <button
+            onClick={() => setCategoriesOpen(true)}
+            className={cn(
+              "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors",
+              isCategoryPage
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Tag className="h-5 w-5" />
+            <span>Categories</span>
+          </button>
+
           {/* Right navigation items */}
           {rightItems.map((item) => {
             const Icon = item.icon;
@@ -101,6 +131,46 @@ export function MobileBottomNav() {
             onOpenChange={setOpen}
             showTrigger={false}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Categories Dialog */}
+      <Dialog open={categoriesOpen} onOpenChange={setCategoriesOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogTitle className="mb-4">Categories</DialogTitle>
+          {categories.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No categories found
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {categories.map((category) => {
+                const isActive = pathname === `/category/${category.id}`;
+                return (
+                  <Link
+                    key={category.id}
+                    href={`/category/${category.id}`}
+                    onClick={() => setCategoriesOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      isActive
+                        ? "bg-accent text-accent-foreground"
+                        : "hover:bg-accent/50 text-foreground"
+                    )}
+                  >
+                    <div
+                      className="h-3 w-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: category.color }}
+                    />
+                    {category.icon && (
+                      <span className="text-base leading-none">{category.icon}</span>
+                    )}
+                    <span className="flex-1 truncate">{category.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>
