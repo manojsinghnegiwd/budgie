@@ -34,6 +34,8 @@ import { Plus } from "lucide-react";
 import { useUser } from "@/components/user-provider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import type { Category } from "@/lib/prisma";
+import { ReceiptScanner } from "@/components/receipt-scanner";
+import type { ReceiptAnalysisResult } from "@/app/actions/receipt";
 
 const expenseSchema = z.object({
   userId: z.string().min(1, "User is required"),
@@ -72,7 +74,7 @@ export function AddExpenseDialog({
 }: AddExpenseDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [expenseType, setExpenseType] = useState<"regular" | "recurring" | "reminder">("regular");
+  const [expenseType, setExpenseType] = useState<"regular" | "recurring" | "reminder" | "scan">("regular");
   const { selectedUserId, users } = useUser();
 
   // Use controlled state if provided, otherwise use internal state
@@ -118,10 +120,76 @@ export function AddExpenseDialog({
     },
   });
 
+  // Handler for receipt extraction
+  const handleReceiptExtracted = (data: ReceiptAnalysisResult) => {
+    // Pre-fill the regular expense form with extracted data
+    form.setValue("description", data.description);
+    form.setValue("amount", data.amount);
+    form.setValue("date", new Date(data.date));
+    if (data.suggestedCategoryId) {
+      form.setValue("categoryId", data.suggestedCategoryId);
+    }
+    
+    // Build comprehensive additional description with all receipt details
+    const additionalParts: string[] = [];
+    
+    // Merchant
+    if (data.merchant) {
+      additionalParts.push(`Merchant: ${data.merchant}`);
+    }
+    
+    // Items with prices
+    if (data.items && data.items.length > 0) {
+      const itemsList = data.items
+        .map((item) => {
+          if (typeof item === "string") {
+            return item;
+          }
+          return `${item.name} ($${item.price.toFixed(2)})`;
+        })
+        .join(", ");
+      additionalParts.push(`Items: ${itemsList}`);
+    }
+    
+    // Pricing breakdown (subtotal, discounts, tax)
+    const pricingParts: string[] = [];
+    if (data.subtotal && data.subtotal !== data.amount) {
+      pricingParts.push(`Subtotal: $${data.subtotal.toFixed(2)}`);
+    }
+    if (data.discounts && data.discounts.length > 0) {
+      const discountsList = data.discounts
+        .map((d) => `${d.name} (-$${d.amount.toFixed(2)})`)
+        .join(", ");
+      pricingParts.push(`Discounts: ${discountsList}`);
+    }
+    if (data.tax) {
+      pricingParts.push(`Tax: $${data.tax.toFixed(2)}`);
+    }
+    if (data.totalSavings && data.totalSavings > 0) {
+      pricingParts.push(`Total Savings: $${data.totalSavings.toFixed(2)}`);
+    }
+    if (pricingParts.length > 0) {
+      additionalParts.push(pricingParts.join(" | "));
+    }
+    
+    // Original additional description from AI
+    if (data.additionalDescription) {
+      additionalParts.push(data.additionalDescription);
+    }
+    
+    // Combine all parts
+    if (additionalParts.length > 0) {
+      form.setValue("additionalDescription", additionalParts.join(". "));
+    }
+    
+    // Switch to regular tab so user can review and submit
+    setExpenseType("regular");
+  };
+
   // Reset expense type and forms when dialog opens
   useEffect(() => {
     if (open) {
-      setExpenseType("regular");
+      setExpenseType("scan");
       const defaultUserId = selectedUserId || "";
       form.reset({
         userId: defaultUserId,
@@ -233,15 +301,20 @@ export function AddExpenseDialog({
       <DialogHeader>
         <DialogTitle>Add Expense</DialogTitle>
         <DialogDescription>
-          Record a new expense, recurring bill, or reminder.
+          Scan a receipt, or manually record an expense, recurring bill, or reminder.
         </DialogDescription>
       </DialogHeader>
-      <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as "regular" | "recurring" | "reminder")}>
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs value={expenseType} onValueChange={(value) => setExpenseType(value as "regular" | "recurring" | "reminder" | "scan")}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="scan">📷 Scan</TabsTrigger>
           <TabsTrigger value="regular">Regular</TabsTrigger>
           <TabsTrigger value="recurring">Recurring</TabsTrigger>
           <TabsTrigger value="reminder">Reminder</TabsTrigger>
         </TabsList>
+          
+          <TabsContent value="scan">
+            <ReceiptScanner onExtracted={handleReceiptExtracted} />
+          </TabsContent>
           
           <TabsContent value="regular">
             <Form {...form}>

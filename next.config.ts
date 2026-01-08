@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Exclude libsql packages from webpack bundling (they need native Node.js)
   serverExternalPackages: ["@libsql/client", "@prisma/adapter-libsql"],
+  // Increase body size limit for Server Actions to support multiple receipt images
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb", // Allow up to 10MB for multiple image uploads
+    },
+  },
   async headers() {
     return [
       {
