@@ -33,6 +33,7 @@ import type { Expense, Category, User } from "@/lib/prisma";
 
 const expenseSchema = z.object({
   description: z.string().min(1, "Description is required"),
+  additionalDescription: z.string().optional(),
   amount: z.number().positive("Amount must be positive"),
   date: z.date(),
   categoryId: z.string().min(1, "Category is required"),
@@ -59,6 +60,7 @@ export function EditExpenseDialog({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
       description: expense.description,
+      additionalDescription: expense.additionalDescription || "",
       amount: expense.amount,
       date: new Date(expense.date),
       categoryId: expense.categoryId,
@@ -69,6 +71,7 @@ export function EditExpenseDialog({
     if (open) {
       form.reset({
         description: expense.description,
+        additionalDescription: expense.additionalDescription || "",
         amount: expense.amount,
         date: new Date(expense.date),
         categoryId: expense.categoryId,
@@ -107,6 +110,23 @@ export function EditExpenseDialog({
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Input placeholder="e.g., Groceries" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="additionalDescription"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Additional Details (Optional)</FormLabel>
+                  <FormControl>
+                    <textarea
+                      placeholder="Add more context for better search"
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

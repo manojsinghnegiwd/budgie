@@ -3,6 +3,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { upsertExpenseEmbedding, deleteExpenseEmbedding } from "@/lib/embeddings";
 
 // Cached helper to get shared category IDs (used in multiple places)
 const getSharedCategoryIds = cache(async (): Promise<string[]> => {
@@ -305,6 +306,7 @@ export async function createExpense(
   userId: string,
   data: {
     description: string;
+    additionalDescription?: string;
     amount: number;
     date: Date;
     categoryId: string;
@@ -321,6 +323,19 @@ export async function createExpense(
     },
   });
 
+  // Trigger embedding asynchronously (don't block the response)
+  upsertExpenseEmbedding({
+    id: expense.id,
+    description: expense.description,
+    additionalDescription: expense.additionalDescription,
+    userId: expense.userId,
+    categoryId: expense.categoryId,
+    date: expense.date,
+    amount: expense.amount,
+  }).catch((error) => {
+    console.error("Error creating embedding for expense:", error);
+  });
+
   revalidatePath("/");
   revalidatePath("/expenses");
 
@@ -331,6 +346,7 @@ export async function updateExpense(
   id: string,
   data: {
     description?: string;
+    additionalDescription?: string;
     amount?: number;
     date?: Date;
     categoryId?: string;
@@ -344,6 +360,21 @@ export async function updateExpense(
     },
   });
 
+  // Re-generate embedding if description or additionalDescription changed
+  if (data.description !== undefined || data.additionalDescription !== undefined) {
+    upsertExpenseEmbedding({
+      id: expense.id,
+      description: expense.description,
+      additionalDescription: expense.additionalDescription,
+      userId: expense.userId,
+      categoryId: expense.categoryId,
+      date: expense.date,
+      amount: expense.amount,
+    }).catch((error) => {
+      console.error("Error updating embedding for expense:", error);
+    });
+  }
+
   revalidatePath("/");
   revalidatePath("/expenses");
 
@@ -353,6 +384,11 @@ export async function updateExpense(
 export async function deleteExpense(id: string) {
   await prisma.expense.delete({
     where: { id },
+  });
+
+  // Delete embedding from Pinecone
+  deleteExpenseEmbedding(id).catch((error) => {
+    console.error("Error deleting embedding for expense:", error);
   });
 
   revalidatePath("/");
@@ -446,6 +482,7 @@ export async function createRecurringExpense(
   userId: string,
   data: {
     description: string;
+    additionalDescription?: string;
     amount: number;
     categoryId: string;
     frequency: "daily" | "weekly" | "monthly" | "yearly";
@@ -473,6 +510,7 @@ export async function createRecurringExpense(
         data: {
           userId,
           description: data.description,
+          additionalDescription: data.additionalDescription,
           amount: data.amount,
           date: date,
           categoryId: data.categoryId,
@@ -491,6 +529,23 @@ export async function createRecurringExpense(
     )
   );
 
+  // Trigger embeddings for all created expenses asynchronously
+  Promise.all(
+    expenses.map((expense) =>
+      upsertExpenseEmbedding({
+        id: expense.id,
+        description: expense.description,
+        additionalDescription: expense.additionalDescription,
+        userId: expense.userId,
+        categoryId: expense.categoryId,
+        date: expense.date,
+        amount: expense.amount,
+      })
+    )
+  ).catch((error) => {
+    console.error("Error creating embeddings for recurring expenses:", error);
+  });
+
   revalidatePath("/");
   revalidatePath("/expenses");
 
@@ -501,6 +556,7 @@ export async function createReminderExpense(
   userId: string,
   data: {
     description: string;
+    additionalDescription?: string;
     amount: number;
     date: Date;
     categoryId: string;
@@ -510,6 +566,7 @@ export async function createReminderExpense(
     data: {
       userId,
       description: data.description,
+      additionalDescription: data.additionalDescription,
       amount: data.amount,
       date: data.date,
       categoryId: data.categoryId,
@@ -521,6 +578,19 @@ export async function createReminderExpense(
     include: {
       category: true,
     },
+  });
+
+  // Trigger embedding asynchronously
+  upsertExpenseEmbedding({
+    id: expense.id,
+    description: expense.description,
+    additionalDescription: expense.additionalDescription,
+    userId: expense.userId,
+    categoryId: expense.categoryId,
+    date: expense.date,
+    amount: expense.amount,
+  }).catch((error) => {
+    console.error("Error creating embedding for reminder:", error);
   });
 
   revalidatePath("/");

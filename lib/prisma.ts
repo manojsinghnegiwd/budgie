@@ -28,7 +28,9 @@ export type Category = {
 
 export type Expense = {
   id: string;
+  userId: string;
   description: string;
+  additionalDescription: string | null;
   amount: number;
   date: Date;
   categoryId: string;
@@ -38,6 +40,7 @@ export type Expense = {
   recurringFrequency: string | null;
   dayOfMonth: number | null;
   nextDueDate: Date | null;
+  endDate: Date | null;
   isActive: boolean | null;
   isCompleted: boolean | null;
   createdAt: Date;

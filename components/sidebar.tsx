@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Receipt, Settings, Tag, ChevronDown, ChevronUp } from "lucide-react";
+import { LayoutDashboard, Receipt, Settings, Tag, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/components/currency-provider";
 import { useUser } from "@/components/user-provider";
@@ -21,6 +21,7 @@ import type { Category } from "@/lib/prisma";
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Expenses", href: "/expenses", icon: Receipt },
+  { name: "Search", href: "/search", icon: Search },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

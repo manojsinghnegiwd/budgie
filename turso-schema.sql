@@ -36,6 +36,7 @@ CREATE TABLE "Expense" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
     "description" TEXT NOT NULL,
+    "additionalDescription" TEXT,
     "amount" REAL NOT NULL,
     "date" DATETIME NOT NULL,
     "categoryId" TEXT NOT NULL,

@@ -57,25 +57,26 @@ model Category {
 }
 
 model Expense {
-  id                 String    @id @default(cuid())
-  userId             String
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  description        String
-  amount             Float
-  date               DateTime
-  categoryId         String
-  category           Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  type               String    @default("regular") // "regular", "recurring", "reminder"
-  isProjected        Boolean   @default(false)
-  isPaid             Boolean   @default(true) // Whether the expense has been paid
-  recurringFrequency String? // "daily", "weekly", "monthly", "yearly"
-  dayOfMonth         Int?
-  nextDueDate        DateTime?
-  endDate            DateTime? // End date for recurring bill series
-  isActive           Boolean? // For recurring bills
-  isCompleted        Boolean? // For reminders
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  description           String
+  additionalDescription String? // Optional field for additional searchable context
+  amount                Float
+  date                  DateTime
+  categoryId            String
+  category              Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  type                  String    @default("regular") // "regular", "recurring", "reminder"
+  isProjected           Boolean   @default(false)
+  isPaid                Boolean   @default(true) // Whether the expense has been paid
+  recurringFrequency    String? // "daily", "weekly", "monthly", "yearly"
+  dayOfMonth            Int?
+  nextDueDate           DateTime?
+  endDate               DateTime? // End date for recurring bill series
+  isActive              Boolean? // For recurring bills
+  isCompleted           Boolean? // For reminders
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   @@index([userId, date])
   @@index([categoryId])

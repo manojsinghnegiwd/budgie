@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Receipt, Settings, Plus, Tag } from "lucide-react";
+import { LayoutDashboard, Receipt, Settings, Plus, Tag, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -52,6 +52,17 @@ export function MobileBottomNav() {
 
   return (
     <>
+      {/* Floating Search Button */}
+      <Link
+        href="/search"
+        className={cn(
+          "fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 active:scale-95 md:hidden",
+          pathname === "/search" && "bg-primary/90"
+        )}
+      >
+        <Search className="h-6 w-6" />
+      </Link>
+
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="flex h-16 items-center justify-around px-2">
           {/* Left navigation items */}
