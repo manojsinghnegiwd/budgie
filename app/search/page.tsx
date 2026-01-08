@@ -1,10 +1,7 @@
 import { Suspense } from "react";
-import { getCategories } from "@/app/actions/categories";
 import { SearchPageClient } from "@/components/search/search-page-client";
 
 export default async function SearchPage() {
-  const categories = await getCategories();
-
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
       <div className="mb-6 hidden md:block">
@@ -15,7 +12,7 @@ export default async function SearchPage() {
       </div>
 
       <Suspense fallback={<div>Loading...</div>}>
-        <SearchPageClient categories={categories} />
+        <SearchPageClient />
       </Suspense>
     </div>
   );

@@ -8,27 +8,13 @@ import {
   isSemanticSearchAvailable,
   type SearchResult,
 } from "@/app/actions/search";
-import type { Category } from "@prisma/client";
 import { useUser } from "@/components/user-provider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
-interface SearchPageClientProps {
-  categories: Category[];
-}
-
-export function SearchPageClient({ categories }: SearchPageClientProps) {
-  const { selectedUserId, users } = useUser();
+export function SearchPageClient() {
+  const { selectedUserId } = useUser();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
-  const [searchUserId, setSearchUserId] = useState<string>("current");
   const [error, setError] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<"semantic" | "text">("semantic");
 
@@ -43,20 +29,8 @@ export function SearchPageClient({ categories }: SearchPageClientProps) {
       setIsLoading(true);
       setError(null);
       try {
-        // Determine which userId to use for search
-        let userIdFilter: string | null | undefined;
-        if (searchUserId === "current") {
-          userIdFilter = selectedUserId;
-        } else if (searchUserId === "all") {
-          userIdFilter = null; // Search all users
-        } else {
-          userIdFilter = searchUserId; // Specific user
-        }
-
         const searchResults = await searchExpenses(searchQuery, {
-          userId: userIdFilter,
-          categoryId:
-            selectedCategoryId !== "all" ? selectedCategoryId : undefined,
+          userId: selectedUserId,
         });
         setResults(searchResults);
 
@@ -73,7 +47,7 @@ export function SearchPageClient({ categories }: SearchPageClientProps) {
         setIsLoading(false);
       }
     },
-    [selectedUserId, selectedCategoryId, searchUserId]
+    [selectedUserId]
   );
 
   // Debounce search
@@ -113,48 +87,6 @@ export function SearchPageClient({ categories }: SearchPageClientProps) {
           isLoading={isLoading}
           placeholder="e.g., groceries from last month, coffee expenses, etc."
         />
-
-        <div className="flex gap-4 flex-wrap">
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-sm font-medium mb-2 block">Category</label>
-            <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="All categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <div className="flex items-center gap-2">
-                      {category.icon && <span>{category.icon}</span>}
-                      <span>{category.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex-1 min-w-[200px]">
-            <label className="text-sm font-medium mb-2 block">User</label>
-            <Select value={searchUserId} onValueChange={setSearchUserId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Current user" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="current">
-                  Current User ({users.find((u) => u.id === selectedUserId)?.name || "Unknown"})
-                </SelectItem>
-                <SelectItem value="all">All Users</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
       </div>
 
       <SearchResults results={results} isLoading={isLoading} query={query} />

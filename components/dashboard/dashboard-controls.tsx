@@ -127,11 +127,11 @@ export function DashboardControls({ categories, month, year }: DashboardControls
         </Button>
       </div>
 
-      {/* Filters Section - Collapsible on mobile, always visible on desktop */}
+      {/* Filters Section - Collapsible on mobile, hidden on desktop */}
       <div className={cn(
-        "mb-6 space-y-4 overflow-hidden transition-all duration-300",
+        "mb-6 space-y-4 overflow-hidden transition-all duration-300 md:hidden",
         // On mobile: show/hide based on filtersOpen
-        filtersOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0 md:max-h-none md:opacity-100"
+        filtersOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
       )}>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-2">
           <UserViewFilter className="w-full md:w-[160px]" />
