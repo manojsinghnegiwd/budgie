@@ -30,10 +30,19 @@ export default async function ExpensesPage({ searchParams }: ExpensesPageProps) 
   const categories = await getCategories();
   const params = await searchParams;
 
+  // Calculate current month's start and end dates
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  // Format dates as YYYY-MM-DD using local timezone (not UTC)
+  const defaultStartDate = `${currentMonthStart.getFullYear()}-${String(currentMonthStart.getMonth() + 1).padStart(2, '0')}-${String(currentMonthStart.getDate()).padStart(2, '0')}`;
+  const defaultEndDate = `${currentMonthEnd.getFullYear()}-${String(currentMonthEnd.getMonth() + 1).padStart(2, '0')}-${String(currentMonthEnd.getDate()).padStart(2, '0')}`;
+
   const expenseType = (params.type as "all" | "regular" | "recurring" | "reminder") || "all";
   const includeProjected = params.includeProjected !== "false";
-  const startDate = params.startDate || "";
-  const endDate = params.endDate || "";
+  const startDate = params.startDate || defaultStartDate;
+  const endDate = params.endDate || defaultEndDate;
 
   // Get viewUserId and selectedUserId from cookies
   const cookieStore = await cookies();

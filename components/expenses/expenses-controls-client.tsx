@@ -35,14 +35,21 @@ export function ExpensesControlsClient({
     endDate?: string;
   }) => {
     const params = new URLSearchParams();
-    if (updates.type && updates.type !== "all") params.set("type", updates.type);
-    if (updates.includeProjected === false) params.set("includeProjected", "false");
-    if (updates.startDate) params.set("startDate", updates.startDate);
-    if (updates.endDate) params.set("endDate", updates.endDate);
+    
+    // Use updated values or fall back to current state
+    const currentType = updates.type !== undefined ? updates.type : expenseType;
+    const currentIncludeProjected = updates.includeProjected !== undefined ? updates.includeProjected : includeProjected;
+    const currentStartDate = updates.startDate !== undefined ? updates.startDate : startDate;
+    const currentEndDate = updates.endDate !== undefined ? updates.endDate : endDate;
+    
+    if (currentType && currentType !== "all") params.set("type", currentType);
+    if (currentIncludeProjected === false) params.set("includeProjected", "false");
+    if (currentStartDate) params.set("startDate", currentStartDate);
+    if (currentEndDate) params.set("endDate", currentEndDate);
     
     const queryString = params.toString();
     router.push(queryString ? `?${queryString}` : "/expenses", { scroll: false });
-  }, [router]);
+  }, [router, expenseType, includeProjected, startDate, endDate]);
 
   const handleExpenseTypeChange = useCallback((value: "all" | "regular" | "recurring" | "reminder") => {
     setExpenseType(value);

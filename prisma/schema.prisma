@@ -90,6 +90,7 @@ model Expense {
 model Settings {
   id                      String   @id @default(cuid())
   usdConversionRate       Float    @default(83.0)
+  currency                String   @default("INR")
   defaultGlobalBudgetLimit Float   @default(0)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt

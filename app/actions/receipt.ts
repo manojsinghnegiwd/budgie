@@ -2,6 +2,7 @@
 
 import { openai } from "@/lib/openai";
 import { prisma } from "@/lib/prisma";
+import { type Currency } from "@/lib/utils";
 
 export interface ReceiptAnalysisResult {
   description: string;
@@ -39,10 +40,12 @@ export interface MultiImageReceiptData {
 /**
  * Analyze multiple receipt images as a single order using GPT-4 Vision
  * @param images - Array of base64 encoded images with their MIME types
+ * @param currency - Currency preference for descriptions (INR or USD)
  * @returns Consolidated structured receipt data for a single expense
  */
 export async function analyzeMultipleReceiptImages(
-  images: MultiImageReceiptData[]
+  images: MultiImageReceiptData[],
+  currency: Currency = "INR"
 ): Promise<ReceiptAnalysisResult> {
   if (!openai) {
     throw new Error(
@@ -56,7 +59,7 @@ export async function analyzeMultipleReceiptImages(
 
   // If only one image, use the single image function
   if (images.length === 1) {
-    return analyzeReceiptImage(images[0].base64, images[0].mimeType);
+    return analyzeReceiptImage(images[0].base64, images[0].mimeType, currency);
   }
 
   // Fetch categories for context
@@ -65,6 +68,9 @@ export async function analyzeMultipleReceiptImages(
     orderBy: { name: "asc" },
   });
   const categoryList = categories.map((c) => c.name).join(", ");
+
+  const currencySymbol = currency === "INR" ? "₹" : "$";
+  const currencyName = currency === "INR" ? "Indian Rupees (INR)" : "US Dollars (USD)";
 
   try {
     // Build content array with text prompt and all images
@@ -84,11 +90,13 @@ Combine all information from ALL images into a SINGLE expense entry.
 
 Available expense categories: ${categoryList}
 
+CURRENCY: All amounts should be in ${currencyName}. Use ${currencySymbol} symbol in descriptions.
+
 Extract and CONSOLIDATE the following from ALL images:
 1. Final total amount paid (the actual amount charged - only count once, not per image)
 2. Date (in YYYY-MM-DD format, use the most specific date found)
 3. Merchant/store name
-4. Brief description of the purchase
+4. Brief description of the purchase (use ${currencySymbol} for any prices mentioned)
 5. Best matching category from the available list
 6. ALL line items with individual prices (combine from all images, avoid duplicates)
 7. Subtotal before discounts (if shown)
@@ -97,7 +105,7 @@ Extract and CONSOLIDATE the following from ALL images:
 10. Any additional details useful for expense tracking
 
 IMPORTANT for discounts:
-- If items total $350 but final total is $300, extract the $50 discount
+- If items total ${currencySymbol}350 but final total is ${currencySymbol}300, extract the ${currencySymbol}50 discount
 - Capture discount names/reasons (e.g., "Bundle discount", "Member savings", "20% off")
 - List each discount separately if multiple discounts applied
 - Do NOT sum totals from multiple images - find the FINAL total
@@ -106,7 +114,7 @@ IMPORTANT for discounts:
 
 Return ONLY a valid JSON object with this exact structure:
 {
-  "description": "Brief description of purchase",
+  "description": "Brief description of purchase with ${currencySymbol} for any amounts",
   "amount": 123.45,
   "date": "YYYY-MM-DD",
   "suggestedCategoryName": "Category name from the list",
@@ -121,7 +129,7 @@ Return ONLY a valid JSON object with this exact structure:
   ],
   "totalSavings": 10.00,
   "tax": 8.45,
-  "additionalDescription": "Any additional context",
+  "additionalDescription": "Payment via card, total ${currencySymbol}123.45 including tax",
   "confidence": 0.9
 }
 
@@ -129,7 +137,8 @@ Important:
 - Return ONLY the JSON object, no markdown formatting or code blocks
 - Ensure amount is a number without currency symbols
 - Match the category name exactly as it appears in the provided list
-- Set confidence between 0 and 1 based on overall image quality and how well information correlates`,
+- Set confidence between 0 and 1 based on overall image quality and how well information correlates
+- ALWAYS use ${currencySymbol} symbol (not $) when mentioning any prices in description or additionalDescription fields`,
       },
     ];
 
@@ -197,7 +206,8 @@ Important:
 
 export async function analyzeReceiptImage(
   base64Image: string,
-  mimeType: string = "image/jpeg"
+  mimeType: string = "image/jpeg",
+  currency: Currency = "INR"
 ): Promise<ReceiptAnalysisResult> {
   if (!openai) {
     throw new Error(
@@ -212,6 +222,9 @@ export async function analyzeReceiptImage(
   });
   const categoryList = categories.map((c) => c.name).join(", ");
 
+  const currencySymbol = currency === "INR" ? "₹" : "$";
+  const currencyName = currency === "INR" ? "Indian Rupees (INR)" : "US Dollars (USD)";
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // GPT-4 with vision capabilities
@@ -225,11 +238,13 @@ export async function analyzeReceiptImage(
 
 Available expense categories: ${categoryList}
 
+CURRENCY: All amounts should be in ${currencyName}. Use ${currencySymbol} symbol in descriptions.
+
 Extract the following information from the receipt:
 1. Final total amount paid (as a number, no currency symbols)
 2. Date (in YYYY-MM-DD format, use today's date if not visible)
 3. Merchant/store name
-4. Brief description of the purchase
+4. Brief description of the purchase (use ${currencySymbol} for any prices mentioned)
 5. Best matching category from the available list
 6. Line items with individual prices (if visible)
 7. Subtotal before discounts (if shown)
@@ -238,13 +253,13 @@ Extract the following information from the receipt:
 10. Any additional details that might be useful for expense tracking
 
 IMPORTANT for discounts:
-- If items total $350 but final total is $300, extract the $50 discount
+- If items total ${currencySymbol}350 but final total is ${currencySymbol}300, extract the ${currencySymbol}50 discount
 - Capture discount names/reasons (e.g., "Bundle discount", "Member savings", "20% off")
 - List each discount separately if multiple discounts applied
 
 Return ONLY a valid JSON object with this exact structure:
 {
-  "description": "Brief description of purchase",
+  "description": "Brief description of purchase with ${currencySymbol} for any amounts",
   "amount": 123.45,
   "date": "YYYY-MM-DD",
   "suggestedCategoryName": "Category name from the list",
@@ -260,7 +275,7 @@ Return ONLY a valid JSON object with this exact structure:
   ],
   "totalSavings": 15.00,
   "tax": 8.45,
-  "additionalDescription": "Any additional context like payment method, special notes",
+  "additionalDescription": "Paid via UPI, saved ${currencySymbol}15.00 with discounts",
   "confidence": 0.9
 }
 
@@ -268,7 +283,8 @@ Important:
 - Return ONLY the JSON object, no markdown formatting or code blocks
 - Ensure amount is a number without currency symbols
 - Match the category name exactly as it appears in the provided list
-- Set confidence between 0 and 1 based on image quality and readability`,
+- Set confidence between 0 and 1 based on image quality and readability
+- ALWAYS use ${currencySymbol} symbol (not $) when mentioning any prices in description or additionalDescription fields`,
             },
             {
               type: "image_url",

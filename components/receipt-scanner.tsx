@@ -27,7 +27,7 @@ export function ReceiptScanner({ onExtracted }: ReceiptScannerProps) {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ReceiptAnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { formatCurrencyAmount } = useCurrency();
+  const { formatCurrencyAmount, currency } = useCurrency();
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -101,7 +101,7 @@ export function ReceiptScanner({ onExtracted }: ReceiptScannerProps) {
         mimeType: p.mimeType,
       }));
       
-      const analysisResult = await analyzeMultipleReceiptImages(images);
+      const analysisResult = await analyzeMultipleReceiptImages(images, currency);
       setResult(analysisResult);
       onExtracted(analysisResult);
     } catch (err) {

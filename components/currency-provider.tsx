@@ -23,22 +23,30 @@ export function useCurrency() {
 interface CurrencyProviderProps {
   children: ReactNode;
   initialConversionRate: number;
+  initialCurrency?: Currency;
 }
 
 export function CurrencyProvider({
   children,
   initialConversionRate,
+  initialCurrency = "INR",
 }: CurrencyProviderProps) {
-  const [currency, setCurrency] = useState<Currency>("INR");
+  const [currency, setCurrency] = useState<Currency>(initialCurrency);
   const [conversionRate] = useState(initialConversionRate);
 
   useEffect(() => {
-    // Load currency preference from localStorage
+    // Sync with localStorage for backward compatibility
     const savedCurrency = localStorage.getItem("currency") as Currency | null;
-    if (savedCurrency === "INR" || savedCurrency === "USD") {
-      setCurrency(savedCurrency);
+    if (savedCurrency && (savedCurrency === "INR" || savedCurrency === "USD")) {
+      if (savedCurrency !== initialCurrency) {
+        // If localStorage differs from DB, use DB value (source of truth)
+        localStorage.setItem("currency", initialCurrency);
+      }
+    } else {
+      // If not in localStorage, set it from the DB value
+      localStorage.setItem("currency", initialCurrency);
     }
-  }, []);
+  }, [initialCurrency]);
 
   const handleSetCurrency = (newCurrency: Currency) => {
     setCurrency(newCurrency);
