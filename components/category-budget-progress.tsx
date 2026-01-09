@@ -17,6 +17,7 @@ interface CategoryBudgetProgressProps {
   month: number;
   year: number;
   forecastAmounts?: Record<string, number>; // categoryId -> forecast amount
+  carryoverAmounts?: Record<string, number>; // categoryId -> carryover amount
   hideHeader?: boolean; // Hide the header section
 }
 
@@ -25,6 +26,7 @@ export function CategoryBudgetProgress({
   month, 
   year,
   forecastAmounts = {},
+  carryoverAmounts = {},
   hideHeader = false
 }: CategoryBudgetProgressProps) {
   const { formatCurrencyAmount } = useCurrency();
@@ -53,26 +55,37 @@ export function CategoryBudgetProgress({
           const forecastAmount = category.categoryId 
             ? (forecastAmounts[category.categoryId] || 0)
             : 0;
+          const carryoverAmount = category.categoryId 
+            ? (carryoverAmounts[category.categoryId] || 0)
+            : 0;
           const limit = category.budgetLimit!;
           
+          // Calculate effective budget after carryover
+          const effectiveBudget = limit - carryoverAmount;
+          
+          // Calculate percentages based on ORIGINAL budget for visual representation
+          const carryoverPercentage = limit > 0 
+            ? (carryoverAmount / limit) * 100 
+            : 0;
+          
           const spentPercentage = limit > 0 
-            ? Math.min(100, (category.amount / limit) * 100) 
+            ? Math.min(100 - carryoverPercentage, (category.amount / limit) * 100) 
             : 0;
           
           const forecastPercentage = limit > 0
-            ? Math.min(100 - spentPercentage, (forecastAmount / limit) * 100)
+            ? Math.min(100 - carryoverPercentage - spentPercentage, (forecastAmount / limit) * 100)
             : 0;
           
           const totalUsed = category.amount + forecastAmount;
-          const adjustedRemaining = Math.max(0, limit - totalUsed);
-          const remaining = Math.max(0, limit - category.amount);
+          const adjustedRemaining = Math.max(0, effectiveBudget - totalUsed);
+          const remaining = Math.max(0, effectiveBudget - category.amount);
           
           const daysInMonth = new Date(year, month, 0).getDate();
           const daysPassed = new Date().getDate();
-          const expectedSpending = (limit / daysInMonth) * daysPassed;
+          const expectedSpending = (effectiveBudget / daysInMonth) * daysPassed;
           const burnRate = expectedSpending > 0 ? (category.amount / expectedSpending) * 100 : 0;
           
-          const isOverBudget = totalUsed > limit;
+          const isOverBudget = totalUsed > effectiveBudget;
 
           return (
             <Card key={category.name}>
@@ -90,6 +103,15 @@ export function CategoryBudgetProgress({
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
+                  {carryoverAmount > 0 && (
+                    <div className="flex justify-between text-xs bg-destructive/10 border border-destructive/20 rounded p-2">
+                      <span className="text-destructive">Carried Over</span>
+                      <span className="font-semibold text-destructive">
+                        {formatCurrencyAmount(carryoverAmount)}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between text-sm">
                     <span>Spent</span>
                     <span className="font-medium">{formatCurrencyAmount(category.amount)}</span>
@@ -105,11 +127,19 @@ export function CategoryBudgetProgress({
                   
                   {/* Stacked Progress Bar */}
                   <div className="relative h-2 w-full overflow-hidden rounded-full bg-primary/20">
+                    {/* Carryover segment (red) */}
+                    {carryoverPercentage > 0 && (
+                      <div
+                        className="absolute left-0 top-0 h-full bg-destructive transition-all"
+                        style={{ width: `${carryoverPercentage}%` }}
+                      />
+                    )}
                     {/* Spent segment (category color) */}
                     {spentPercentage > 0 && (
                       <div
-                        className="absolute left-0 top-0 h-full transition-all"
+                        className="absolute top-0 h-full transition-all"
                         style={{ 
+                          left: `${carryoverPercentage}%`,
                           width: `${spentPercentage}%`,
                           backgroundColor: category.color
                         }}
@@ -120,7 +150,7 @@ export function CategoryBudgetProgress({
                       <div
                         className="absolute top-0 h-full bg-amber-500 transition-all"
                         style={{ 
-                          left: `${spentPercentage}%`,
+                          left: `${carryoverPercentage + spentPercentage}%`,
                           width: `${forecastPercentage}%` 
                         }}
                       />

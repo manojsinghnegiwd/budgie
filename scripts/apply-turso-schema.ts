@@ -1,7 +1,11 @@
 import { createClient, Client } from "@libsql/client";
 import { config } from "dotenv";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables
 config({ quiet: true });

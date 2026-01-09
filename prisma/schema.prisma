@@ -92,6 +92,7 @@ model Settings {
   usdConversionRate       Float    @default(83.0)
   currency                String   @default("INR")
   defaultGlobalBudgetLimit Float   @default(0)
+  enableBudgetCarryover   Boolean  @default(false)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 }
@@ -152,4 +153,18 @@ model GlobalBudget {
 
   @@unique([month, year])
   @@index([year, month])
+}
+
+model InsightCache {
+  id          String   @id @default(cuid())
+  viewUserId  String?  // null for global view
+  month       Int
+  year        Int
+  insightType String   // "start_month", "mid_month", "end_month"
+  insightData String   // JSON with calculated metrics
+  insightText String   // AI-generated message
+  generatedAt DateTime @default(now())
+
+  @@unique([viewUserId, month, year, insightType])
+  @@index([viewUserId, month, year])
 }

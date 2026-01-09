@@ -59,7 +59,9 @@ CREATE TABLE "Expense" (
 CREATE TABLE "Settings" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "usdConversionRate" REAL NOT NULL DEFAULT 83.0,
+    "currency" TEXT NOT NULL DEFAULT 'INR',
     "defaultGlobalBudgetLimit" REAL NOT NULL DEFAULT 0,
+    "enableBudgetCarryover" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
 );
@@ -110,6 +112,18 @@ CREATE TABLE "GlobalBudget" (
     "year" INTEGER NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
+CREATE TABLE "InsightCache" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "viewUserId" TEXT,
+    "month" INTEGER NOT NULL,
+    "year" INTEGER NOT NULL,
+    "insightType" TEXT NOT NULL,
+    "insightData" TEXT NOT NULL,
+    "insightText" TEXT NOT NULL,
+    "generatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateIndex
@@ -177,4 +191,10 @@ CREATE INDEX "GlobalBudget_year_month_idx" ON "GlobalBudget"("year", "month");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GlobalBudget_month_year_key" ON "GlobalBudget"("month", "year");
+
+-- CreateIndex
+CREATE INDEX "InsightCache_viewUserId_month_year_idx" ON "InsightCache"("viewUserId", "month", "year");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InsightCache_viewUserId_month_year_insightType_key" ON "InsightCache"("viewUserId", "month", "year", "insightType");
 

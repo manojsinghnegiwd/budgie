@@ -14,14 +14,14 @@ import { NotificationSettings } from "@/components/notification-settings";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import type { GlobalBudget, Category } from "@/lib/prisma";
+import type { GlobalBudget, Category, Settings } from "@/lib/prisma";
 import type { Currency } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { selectedUserId, selectedUser } = useUser();
   const [budget, setBudget] = useState<GlobalBudget | { monthlyLimit: number; month: number; year: number } | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [settings, setSettings] = useState<{ usdConversionRate: number; currency: string } | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadGlobalData = useCallback(async (showLoading = true) => {
@@ -97,7 +97,10 @@ export default function SettingsPage() {
             initialConversionRate={settings.usdConversionRate} 
             initialCurrency={(settings.currency as Currency) || "INR"}
           />
-          <BudgetSettings budget={budget} />
+          <BudgetSettings 
+            budget={budget} 
+            enableBudgetCarryover={settings.enableBudgetCarryover}
+          />
           <CategorySettings categories={categories} />
         </div>
       </div>

@@ -12,20 +12,25 @@ interface DashboardStatsProps {
   };
   budget: GlobalBudget | { monthlyLimit: number; month: number; year: number };
   forecastAmount?: number;
+  carryoverAmount?: number;
 }
 
-export function DashboardStats({ stats, budget, forecastAmount = 0 }: DashboardStatsProps) {
+export function DashboardStats({ stats, budget, forecastAmount = 0, carryoverAmount = 0 }: DashboardStatsProps) {
   const { formatCurrencyAmount } = useCurrency();
+  
+  // Calculate effective budget after carryover
+  const effectiveBudget = budget.monthlyLimit - carryoverAmount;
+  
   const totalUsed = stats.total + forecastAmount;
-  const adjustedRemaining = budget.monthlyLimit - totalUsed;
-  const remaining = Math.max(0, budget.monthlyLimit - stats.total);
-  const percentage = budget.monthlyLimit > 0 
-    ? (stats.total / budget.monthlyLimit) * 100 
+  const adjustedRemaining = effectiveBudget - totalUsed;
+  const remaining = Math.max(0, effectiveBudget - stats.total);
+  const percentage = effectiveBudget > 0 
+    ? (stats.total / effectiveBudget) * 100 
     : 0;
   
   // Calculate total percentage for color indicator
-  const totalPercentage = budget.monthlyLimit > 0 
-    ? (totalUsed / budget.monthlyLimit) * 100 
+  const totalPercentage = effectiveBudget > 0 
+    ? (totalUsed / effectiveBudget) * 100 
     : 0;
   
   // Determine color: red if over limit, yellow if > 80%, default otherwise
@@ -59,10 +64,12 @@ export function DashboardStats({ stats, budget, forecastAmount = 0 }: DashboardS
         </CardHeader>
         <CardContent>
           <div className="text-base font-bold">
-            {formatCurrencyAmount(budget.monthlyLimit)}
+            {formatCurrencyAmount(effectiveBudget)}
           </div>
           <p className="text-xs text-muted-foreground">
-            Monthly budget
+            {carryoverAmount > 0 
+              ? `${formatCurrencyAmount(budget.monthlyLimit)} - ${formatCurrencyAmount(carryoverAmount)} carryover`
+              : "Monthly budget"}
           </p>
         </CardContent>
       </Card>

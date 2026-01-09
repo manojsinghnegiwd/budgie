@@ -15,7 +15,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { updateBudgetLimit } from "@/app/actions/budget";
+import { updateBudgetCarryover } from "@/app/actions/settings";
 import type { GlobalBudget } from "@/lib/prisma";
 
 const budgetSchema = z.object({
@@ -26,10 +28,13 @@ type BudgetFormValues = z.infer<typeof budgetSchema>;
 
 interface BudgetSettingsProps {
   budget: GlobalBudget | { monthlyLimit: number; month: number; year: number };
+  enableBudgetCarryover?: boolean;
 }
 
-export function BudgetSettings({ budget }: BudgetSettingsProps) {
+export function BudgetSettings({ budget, enableBudgetCarryover = false }: BudgetSettingsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [carryoverEnabled, setCarryoverEnabled] = useState(enableBudgetCarryover);
+  const [isUpdatingCarryover, setIsUpdatingCarryover] = useState(false);
 
   const form = useForm<BudgetFormValues>({
     resolver: zodResolver(budgetSchema),
@@ -49,6 +54,18 @@ export function BudgetSettings({ budget }: BudgetSettingsProps) {
     }
   };
 
+  const handleCarryoverToggle = async (enabled: boolean) => {
+    setIsUpdatingCarryover(true);
+    try {
+      await updateBudgetCarryover(enabled);
+      setCarryoverEnabled(enabled);
+    } catch (error) {
+      console.error("Error updating carryover setting:", error);
+    } finally {
+      setIsUpdatingCarryover(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -57,7 +74,7 @@ export function BudgetSettings({ budget }: BudgetSettingsProps) {
           Set the global monthly spending limit for the current month. This budget is shared across all users.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -86,6 +103,24 @@ export function BudgetSettings({ budget }: BudgetSettingsProps) {
             </Button>
           </form>
         </Form>
+
+        <div className="border-t pt-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Budget Carryover
+              </label>
+              <p className="text-sm text-muted-foreground">
+                When enabled, any overspending from last month will reduce your available budget this month
+              </p>
+            </div>
+            <Switch 
+              checked={carryoverEnabled} 
+              onCheckedChange={handleCarryoverToggle}
+              disabled={isUpdatingCarryover}
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

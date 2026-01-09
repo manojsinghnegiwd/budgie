@@ -1,7 +1,11 @@
 import { createClient } from "@libsql/client";
 import { config } from "dotenv";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables
 config({ quiet: true });
@@ -21,7 +25,7 @@ async function applyMigration() {
     "..",
     "prisma",
     "migrations",
-    "20260105193024_migrate_personal_category_budgets",
+    "20260109000000_add_enable_budget_carryover",
     "migration.sql"
   );
   const migrationSql = readFileSync(migrationPath, "utf-8");

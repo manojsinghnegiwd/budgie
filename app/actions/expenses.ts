@@ -4,6 +4,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { upsertExpenseEmbedding, deleteExpenseEmbedding } from "@/lib/embeddings";
+import { invalidateInsightCache } from "./insights";
 
 // Cached helper to get shared category IDs (used in multiple places)
 const getSharedCategoryIds = cache(async (): Promise<string[]> => {
@@ -336,6 +337,10 @@ export async function createExpense(
     console.error("Error creating embedding for expense:", error);
   });
 
+  // Invalidate insight cache for the expense month
+  const expenseDate = new Date(expense.date);
+  await invalidateInsightCache(expenseDate.getMonth() + 1, expenseDate.getFullYear());
+
   revalidatePath("/");
   revalidatePath("/expenses");
 
@@ -375,6 +380,10 @@ export async function updateExpense(
     });
   }
 
+  // Invalidate insight cache for the expense month
+  const expenseDate = new Date(expense.date);
+  await invalidateInsightCache(expenseDate.getMonth() + 1, expenseDate.getFullYear());
+
   revalidatePath("/");
   revalidatePath("/expenses");
 
@@ -382,6 +391,11 @@ export async function updateExpense(
 }
 
 export async function deleteExpense(id: string) {
+  // Get expense before deleting to extract date
+  const expense = await prisma.expense.findUnique({
+    where: { id },
+  });
+
   await prisma.expense.delete({
     where: { id },
   });
@@ -390,6 +404,12 @@ export async function deleteExpense(id: string) {
   deleteExpenseEmbedding(id).catch((error) => {
     console.error("Error deleting embedding for expense:", error);
   });
+
+  // Invalidate insight cache for the expense month
+  if (expense) {
+    const expenseDate = new Date(expense.date);
+    await invalidateInsightCache(expenseDate.getMonth() + 1, expenseDate.getFullYear());
+  }
 
   revalidatePath("/");
   revalidatePath("/expenses");
@@ -407,6 +427,10 @@ export async function markExpenseAsPaid(id: string, isPaid: boolean) {
       category: true,
     },
   });
+
+  // Invalidate insight cache for the expense month
+  const expenseDate = new Date(expense.date);
+  await invalidateInsightCache(expenseDate.getMonth() + 1, expenseDate.getFullYear());
 
   revalidatePath("/");
   revalidatePath("/expenses");
@@ -546,6 +570,19 @@ export async function createRecurringExpense(
     console.error("Error creating embeddings for recurring expenses:", error);
   });
 
+  // Invalidate insight cache for all affected months
+  const affectedMonths = new Set<string>();
+  for (const expense of expenses) {
+    const date = new Date(expense.date);
+    const key = `${date.getMonth() + 1}-${date.getFullYear()}`;
+    affectedMonths.add(key);
+  }
+  
+  for (const monthYear of affectedMonths) {
+    const [month, year] = monthYear.split('-').map(Number);
+    await invalidateInsightCache(month, year);
+  }
+
   revalidatePath("/");
   revalidatePath("/expenses");
 
@@ -592,6 +629,10 @@ export async function createReminderExpense(
   }).catch((error) => {
     console.error("Error creating embedding for reminder:", error);
   });
+
+  // Invalidate insight cache for the expense month
+  const expenseDate = new Date(expense.date);
+  await invalidateInsightCache(expenseDate.getMonth() + 1, expenseDate.getFullYear());
 
   revalidatePath("/");
   revalidatePath("/expenses");

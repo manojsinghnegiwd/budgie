@@ -60,7 +60,9 @@ export type GlobalBudget = {
 export type Settings = {
   id: string;
   usdConversionRate: number;
+  currency: string;
   defaultGlobalBudgetLimit: number;
+  enableBudgetCarryover: boolean;
   createdAt: Date;
   updatedAt: Date;
 };

@@ -1,6 +1,7 @@
-import { getBudgetForMonth, getCategoryBudgetSum } from "@/app/actions/budget";
+import { getBudgetForMonth, getCategoryBudgetSum, getCarryoverAmount } from "@/app/actions/budget";
 import { getExpenseStats } from "@/app/actions/expenses";
 import { getMonthForecast } from "@/app/actions/forecast";
+import { getSettings } from "@/app/actions/settings";
 import { BudgetProgress } from "@/components/budget-progress";
 import { CategoryChart } from "@/components/category-chart";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -14,10 +15,15 @@ interface BudgetCategorySectionProps {
 }
 
 export async function BudgetCategorySection({ month, year, viewUserId, categoryIds }: BudgetCategorySectionProps) {
-  const [globalBudget, stats, forecast] = await Promise.all([
+  const settings = await getSettings();
+  
+  const [globalBudget, stats, forecast, carryover] = await Promise.all([
     getBudgetForMonth(month, year),
     getExpenseStats(viewUserId, month, year, false, categoryIds),
     getMonthForecast(viewUserId, month, year, categoryIds),
+    settings?.enableBudgetCarryover 
+      ? getCarryoverAmount(month, year, viewUserId, categoryIds)
+      : Promise.resolve(0),
   ]);
 
   // If categoryIds is provided, use category budget sum; otherwise use global budget
@@ -68,7 +74,8 @@ export async function BudgetCategorySection({ month, year, viewUserId, categoryI
       <BudgetProgress 
         budget={budget} 
         spent={stats.total} 
-        forecastAmount={forecast?.totalAmount ?? 0} 
+        forecastAmount={forecast?.totalAmount ?? 0}
+        carryoverAmount={carryover}
       />
       <CategoryChart data={chartData} />
     </>

@@ -73,3 +73,24 @@ export async function updateCurrency(currency: Currency) {
   return settings;
 }
 
+export async function updateBudgetCarryover(enabled: boolean) {
+  let settings = await prisma.settings.findFirst();
+
+  if (!settings) {
+    settings = await prisma.settings.create({
+      data: {
+        enableBudgetCarryover: enabled,
+      },
+    });
+  } else {
+    settings = await prisma.settings.update({
+      where: { id: settings.id },
+      data: {
+        enableBudgetCarryover: enabled,
+      },
+    });
+  }
+
+  return settings;
+}
+
